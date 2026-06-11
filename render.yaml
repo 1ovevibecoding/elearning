@@ -3,7 +3,7 @@ services:
     name: lingua-e-learning
     runtime: python
     buildCommand: |
-      cd frontend && npm install && npm run build && cp -r dist ../backend/static
+      cd frontend && npm install && npm run build
       cd ../backend && pip install -r requirements.txt
     startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
@@ -14,4 +14,4 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: FRONTEND_URL
-        value: https://lingua-e-learning.onrender.com
+        value: https://e-learning-aw7z.onrender.com
