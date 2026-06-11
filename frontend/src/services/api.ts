@@ -277,22 +277,3 @@ export async function getStreak(): Promise<{ current_streak: number; total_activ
 export async function getComparison(): Promise<import('../types').UserComparison[]> {
   return request<import('../types').UserComparison[]>('/api/stats/comparison');
 }
-
-// ── Calendar ─────────────────────────────────────────
-
-export async function getSharedEvents(
-  start: string,
-  end: string,
-): Promise<import('../types').CalendarEventResponse[]> {
-  const params = new URLSearchParams({ start, end });
-  return request<import('../types').CalendarEventResponse[]>(`/api/calendar/shared?${params}`);
-}
-
-export async function createCalendarEvent(
-  data: import('../types').CalendarEventCreate,
-): Promise<import('../types').CalendarEventResponse> {
-  return request<import('../types').CalendarEventResponse>('/api/calendar/events', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
