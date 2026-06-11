@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "English Tutor - Word Saver",
+  "version": "1.0.0",
+  "description": "Double-click any word to look up its definition and save it to your vocabulary list.",
+  "permissions": ["storage", "activeTab"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

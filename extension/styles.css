@@ -1,0 +1,214 @@
+/* ============================================================
+   English Tutor – Shared Styles
+   Clean editorial design · Inter font · Warm neutrals
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ---- Design Tokens ---- */
+:root {
+  --color-bg:        #FAFAF8;
+  --color-surface:   #FFFFFF;
+  --color-text:      #1A1A1A;
+  --color-text-sec:  #6B6B6B;
+  --color-border:    #E8E5E0;
+  --color-accent:    #2563EB;
+  --color-accent-hover: #1D4ED8;
+  --color-accent-light: #EFF6FF;
+  --color-success:   #16A34A;
+  --color-error:     #DC2626;
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --shadow-sm:  0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:  0 4px 12px rgba(0,0,0,.06);
+  --shadow-lg:  0 8px 24px rgba(0,0,0,.08);
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ---- Reset ---- */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---- Typography ---- */
+h1, h2, h3 { font-weight: 600; letter-spacing: -0.01em; }
+h1 { font-size: 18px; }
+h2 { font-size: 15px; }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-sec); }
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: #FFFFFF;
+  border-color: var(--color-accent);
+}
+.btn-primary:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+.btn-secondary:hover {
+  background: var(--color-bg);
+  border-color: #D5D2CC;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-sec);
+  border-color: transparent;
+  padding: 6px 10px;
+}
+.btn-ghost:hover {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* ---- Inputs ---- */
+.input {
+  width: 100%;
+  padding: 9px 12px;
+  font-family: var(--font-family);
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input::placeholder {
+  color: #B0ADA8;
+}
+.input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+}
+
+textarea.input {
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.5;
+}
+
+/* ---- Cards ---- */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+/* ---- Divider ---- */
+.divider {
+  height: 1px;
+  background: var(--color-border);
+  border: none;
+  margin: 16px 0;
+}
+
+/* ---- Status badges ---- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 999px;
+  line-height: 1;
+}
+.badge-success {
+  background: #DCFCE7;
+  color: var(--color-success);
+}
+.badge-error {
+  background: #FEE2E2;
+  color: var(--color-error);
+}
+
+/* ---- Toast ---- */
+.toast {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--color-text);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ---- Utility ---- */
+.text-sec  { color: var(--color-text-sec); }
+.text-sm   { font-size: 12px; }
+.text-xs   { font-size: 11px; }
+.mt-4      { margin-top: 4px; }
+.mt-8      { margin-top: 8px; }
+.mt-12     { margin-top: 12px; }
+.mt-16     { margin-top: 16px; }
+.mb-8      { margin-bottom: 8px; }
+.mb-12     { margin-bottom: 12px; }
+.gap-8     { gap: 8px; }
+.gap-12    { gap: 12px; }
+.flex      { display: flex; }
+.flex-col  { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.hidden    { display: none !important; }

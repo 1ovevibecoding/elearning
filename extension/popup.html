@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>English Tutor</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* Popup-specific layout */
+    html, body {
+      width: 350px;
+      min-height: 200px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    body {
+      padding: 0;
+    }
+
+    .popup-header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--color-surface);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .popup-header h1 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-icon {
+      width: 22px;
+      height: 22px;
+      background: var(--color-accent);
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .popup-content {
+      padding: 20px;
+    }
+
+    /* Auth section */
+    .auth-section {
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    .auth-section .auth-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    .auth-section p {
+      font-size: 13px;
+      color: var(--color-text-sec);
+      margin-bottom: 16px;
+      line-height: 1.55;
+    }
+
+    .token-input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .token-input-group .input {
+      flex: 1;
+      font-size: 12px;
+    }
+
+    .auth-error {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--color-error);
+    }
+
+    /* Logged in section */
+    .user-greeting {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      margin-bottom: 18px;
+    }
+
+    .user-avatar {
+      width: 34px;
+      height: 34px;
+      background: var(--color-accent-light);
+      color: var(--color-accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .user-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--color-text);
+    }
+
+    .user-status {
+      font-size: 11px;
+      color: var(--color-text-sec);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--color-success);
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Quick save form */
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-sec);
+      margin-bottom: 10px;
+    }
+
+    .save-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .save-form .input {
+      font-size: 13px;
+    }
+
+    .save-success {
+      font-size: 12px;
+      color: var(--color-success);
+      margin-top: 4px;
+    }
+
+    .save-error {
+      font-size: 12px;
+      color: var(--color-error);
+      margin-top: 4px;
+    }
+
+    /* Recent words */
+    .recent-section {
+      margin-top: 20px;
+    }
+
+    .recent-list {
+      list-style: none;
+    }
+
+    .recent-item {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid #F0EEEA;
+    }
+
+    .recent-item:last-child {
+      border-bottom: none;
+    }
+
+    .recent-word {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--color-text);
+      flex-shrink: 0;
+    }
+
+    .recent-def {
+      font-size: 12px;
+      color: var(--color-text-sec);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 16px 0;
+      color: var(--color-text-sec);
+      font-size: 12px;
+    }
+
+    /* Footer */
+    .popup-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--color-surface);
+    }
+
+    .popup-footer a {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-accent);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .popup-footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="popup-header">
+    <h1>
+      <span class="logo-icon">E</span>
+      English Tutor
+    </h1>
+    <span class="badge badge-success" id="statusBadge" style="display:none;">
+      <span class="status-dot" style="margin-right:3px;"></span> Connected
+    </span>
+  </div>
+
+  <!-- Content -->
+  <div class="popup-content">
+
+    <!-- Not Logged In -->
+    <div id="authSection" class="auth-section">
+      <div class="auth-icon">🔑</div>
+      <h2>Connect Your Account</h2>
+      <p>
+        Log in to the English Tutor website, copy your API token from
+        <strong>Settings → API Token</strong>, and paste it below.
+      </p>
+      <div class="token-input-group">
+        <input
+          type="text"
+          class="input"
+          id="tokenInput"
+          placeholder="Paste your API token here"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="btn btn-primary btn-sm" id="saveTokenBtn">Save</button>
+      </div>
+      <div class="auth-error hidden" id="authError"></div>
+    </div>
+
+    <!-- Logged In -->
+    <div id="loggedInSection" class="hidden">
+
+      <!-- User greeting -->
+      <div class="user-greeting">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <div class="user-info">
+          <div class="user-name" id="userName">User</div>
+          <div class="user-status">
+            <span class="status-dot"></span> Logged in
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick save form -->
+      <div class="section-title">Quick Save Word</div>
+      <form class="save-form" id="saveForm">
+        <input
+          type="text"
+          class="input"
+          id="wordInput"
+          placeholder="Word"
+          required
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <textarea
+          class="input"
+          id="definitionInput"
+          placeholder="Definition"
+          rows="2"
+          required
+        ></textarea>
+        <button type="submit" class="btn btn-primary btn-block btn-sm" id="saveWordBtn">
+          Save Word
+        </button>
+        <div class="save-success hidden" id="saveSuccess">✓ Word saved to vocabulary!</div>
+        <div class="save-error hidden" id="saveFormError"></div>
+      </form>
+
+      <!-- Recent words -->
+      <div class="recent-section">
+        <div class="section-title">Recent Words</div>
+        <ul class="recent-list" id="recentList">
+          <li class="empty-state">No words saved yet</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer (only when logged in) -->
+  <div class="popup-footer hidden" id="popupFooter">
+    <a href="#" id="openWebApp">
+      Open Web App →
+    </a>
+    <button class="btn btn-ghost btn-sm" id="logoutBtn">Log out</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

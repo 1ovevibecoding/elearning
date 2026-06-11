@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.env
+*.db
+
+# Build
+dist/
+build/
+backend/static/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.gemini/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vite
+*.local
+
+# Python
+venv/
+.venv/
+*.egg-info/
