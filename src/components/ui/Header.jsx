@@ -2,20 +2,20 @@
 
 import { UserButton } from "@clerk/nextjs";
 import { MarkerUnderline } from "./MarkerUnderline";
+import { Sparkles } from "lucide-react";
 
 export function Header() {
   return (
     <header className="app-header">
       <div>
-        <h1 className="app-title">
-          Bàn Học{" "}
-          <span className="marker-word">
-            IELTS
-            <MarkerUnderline />
-          </span>
-        </h1>
-        <p className="app-subtitle">
-          Từ vựng · Shadowing · Luyện kỹ năng — có AI đồng hành
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <Sparkles size={24} color="var(--amber)" />
+          <h1 className="app-title">
+            PREP <span className="marker-word">IELTS<MarkerUnderline /></span>
+          </h1>
+        </div>
+        <p className="app-subtitle" style={{ marginTop: "4px" }}>
+
         </p>
       </div>
       <UserButton

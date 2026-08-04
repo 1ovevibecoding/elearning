@@ -32,23 +32,11 @@ export default function Home() {
   const [activities, setActivities] = useState([]);
   const [userStats, setUserStats] = useState({});
 
-  // Create Supabase client with Clerk session token
+  // Create Supabase client
   const supabase = useMemo(() => {
     return createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      {
-        global: {
-          fetch: async (url, options = {}) => {
-            const clerkToken = await window.Clerk?.session?.getToken({
-              template: "supabase",
-            });
-            const headers = new Headers(options?.headers);
-            if (clerkToken) headers.set("Authorization", `Bearer ${clerkToken}`);
-            return fetch(url, { ...options, headers });
-          },
-        },
-      }
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
   }, []);
 
@@ -189,6 +177,7 @@ export default function Home() {
                 setHistory={setReadingHistory}
                 supabase={supabase}
                 userId={userId}
+                setVocabList={setVocabList}
               />
             )}
             {tab === "listening" && (
@@ -197,6 +186,7 @@ export default function Home() {
                 setHistory={setListeningHistory}
                 supabase={supabase}
                 userId={userId}
+                setVocabList={setVocabList}
               />
             )}
           </>

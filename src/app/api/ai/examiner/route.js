@@ -62,6 +62,7 @@ Return JSON:
     "fluency_coherence": <score>,
     "lexical_resource": <score>,
     "grammar": <score>,
+    "pronunciation": <score>,
     "summary_feedback": "<3-4 sentences overall feedback in Vietnamese>"
   }` : ""}
 }`;

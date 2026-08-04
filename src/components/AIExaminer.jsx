@@ -319,9 +319,10 @@ export function AIExaminer({ supabase, userId, history, setHistory }) {
           </h3>
           <ScoreGrid
             items={[
-              ["Trôi chảy & Mạch lạc", sessionSummary.fluency_coherence],
-              ["Từ vựng", sessionSummary.lexical_resource],
-              ["Ngữ pháp", sessionSummary.grammar],
+              ["Trôi chảy & Mạch lạc (FC)", sessionSummary.fluency_coherence],
+              ["Vốn từ vựng (LR)", sessionSummary.lexical_resource],
+              ["Ngữ pháp & Cấu trúc (GRA)", sessionSummary.grammar],
+              ["Phát âm (PR)", sessionSummary.pronunciation || sessionSummary.final_band],
             ]}
           />
           <p className="def-en" style={{ marginTop: 10 }}>{sessionSummary.summary_feedback}</p>

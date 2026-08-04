@@ -142,3 +142,121 @@ export const XP = {
   writing: 35,
   speaking: 30,
 };
+
+/**
+ * Official IELTS Band Score Rounding Rule
+ * If average ends in .25 -> round up to .5
+ * If average ends in .75 -> round up to next whole band
+ * @param {number} r Reading
+ * @param {number} l Listening
+ * @param {number} w Writing
+ * @param {number} s Speaking
+ * @returns {number} Rounded Overall Band (e.g. 7.5)
+ */
+export function calculateOverallBand(r, l, w, s) {
+  const scores = [r, l, w, s].filter((v) => typeof v === "number" && !isNaN(v) && v > 0);
+  if (scores.length === 0) return 0;
+  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+  
+  const decimal = avg - Math.floor(avg);
+  if (decimal < 0.25) {
+    return Math.floor(avg);
+  } else if (decimal < 0.75) {
+    return Math.floor(avg) + 0.5;
+  } else {
+    return Math.ceil(avg);
+  }
+}
+
+/**
+ * Convert Reading/Listening raw score (out of total or 40) to IELTS Band
+ */
+export function rawToBand(correct, total = 40) {
+  const ratio = correct / (total || 1);
+  if (ratio >= 39 / 40) return 9.0;
+  if (ratio >= 37 / 40) return 8.5;
+  if (ratio >= 35 / 40) return 8.0;
+  if (ratio >= 32 / 40) return 7.5;
+  if (ratio >= 30 / 40) return 7.0;
+  if (ratio >= 26 / 40) return 6.5;
+  if (ratio >= 23 / 40) return 6.0;
+  if (ratio >= 18 / 40) return 5.5;
+  if (ratio >= 16 / 40) return 5.0;
+  if (ratio >= 13 / 40) return 4.5;
+  if (ratio >= 10 / 40) return 4.0;
+  return 3.5;
+}
+
+/**
+ * Achievement Badges System
+ */
+export const BADGES = [
+  {
+    id: "first_step",
+    title: "Khởi Đầu Nan",
+    icon: "🌱",
+    desc: "Hoàn thành bài học đầu tiên trên hệ thống",
+    xp: 50,
+    check: (stats) => (stats.total_xp || 0) >= 50,
+  },
+  {
+    id: "vocab_50",
+    title: "Kho Từ Vựng 50+",
+    icon: "📚",
+    desc: "Lưu trữ 50 từ vựng vào hệ thống Spaced Repetition",
+    xp: 100,
+    check: (stats, vocabs) => (vocabs?.length || 0) >= 50,
+  },
+  {
+    id: "streak_7",
+    title: "Chiến Binh 7 Ngày",
+    icon: "🔥",
+    desc: "Đạt chuỗi học liên tiếp 7 ngày không gián đoạn",
+    xp: 150,
+    check: (stats) => (stats.current_streak || 0) >= 7,
+  },
+  {
+    id: "speaking_master",
+    title: "Bậc Thầy Speaking",
+    icon: "🎙️",
+    desc: "Hoàn thành 5 bài thi Speaking cùng Giám khảo AI",
+    xp: 120,
+    check: (stats, _, history) => (history?.speaking?.length || 0) >= 5,
+  },
+  {
+    id: "essay_expert",
+    title: "Cây Bút Học Thuật",
+    icon: "✍️",
+    desc: "Viết 5 bài luận Writing đạt Band 6.5 trở lên",
+    xp: 200,
+    check: (stats, _, history) => (history?.writing?.filter(w => (w.score || 0) >= 6.5).length || 0) >= 5,
+  },
+  {
+    id: "band_7_club",
+    title: "Câu Lạc Bộ Band 7.0+",
+    icon: "🏆",
+    desc: "Đạt Overall Band dự đoán từ 7.0 trở lên",
+    xp: 300,
+    check: (stats, _, history, overall) => overall >= 7.0,
+  },
+];
+
+/**
+ * League Ranks based on total XP
+ */
+export const LEAGUES = [
+  { name: "Đồng (Bronze)", minXp: 0, color: "#cd7f32", icon: "🥉" },
+  { name: "Bạc (Silver)", minXp: 200, color: "#c0c0c0", icon: "🥈" },
+  { name: "Vàng (Gold)", minXp: 600, color: "#ffd700", icon: "🥇" },
+  { name: "Bạch Kim (Platinum)", minXp: 1500, color: "#00e5ff", icon: "💎" },
+  { name: "Kim Cương (Diamond)", minXp: 3000, color: "#b388ff", icon: "👑" },
+  { name: "Huyền Thoại (Master)", minXp: 6000, color: "#ff1744", icon: "🔥" },
+];
+
+export function getLeague(xp = 0) {
+  for (let i = LEAGUES.length - 1; i >= 0; i--) {
+    if (xp >= LEAGUES[i].minXp) return LEAGUES[i];
+  }
+  return LEAGUES[0];
+}
+

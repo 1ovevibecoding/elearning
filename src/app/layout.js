@@ -16,9 +16,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata = {
-  title: "Bàn Học IELTS — Ôn luyện cá nhân với AI",
-  description:
-    "Web app cá nhân để ôn luyện IELTS: từ vựng Feynman, shadowing, luyện Writing & Speaking có AI chấm điểm, spaced repetition, và theo dõi tiến độ band.",
+  title: "PREP IELTS — Cày IELTS chill chill, aim 8.0 dễ ợt!",
+  description: "AI-powered IELTS preparation",
   icons: { icon: "/favicon.ico" },
 };
 

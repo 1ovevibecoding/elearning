@@ -1,26 +1,52 @@
-"use client";
-
 import { useState, useEffect } from "react";
-import { Sparkles, Volume2, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Sparkles, Volume2, Clock, CheckCircle2, XCircle, BookmarkPlus, Layers, Flag } from "lucide-react";
 import { Spinner } from "./ui/Spinner";
 import { EmptyState } from "./ui/EmptyState";
-import { speak, fmtDate } from "@/lib/utils";
+import { speak, fmtDate, rawToBand } from "@/lib/utils";
 
-export function ListeningPanel({ history, setHistory, supabase, userId }) {
+export function ListeningPanel({ history, setHistory, supabase, userId, setVocabList }) {
   const [topic, setTopic] = useState("");
   const [testData, setTestData] = useState(null);
   const [userAnswers, setUserAnswers] = useState({});
+  const [flagged, setFlagged] = useState({});
   const [genLoading, setGenLoading] = useState(false);
   const [gradedResult, setGradedResult] = useState(null);
   const [showTranscript, setShowTranscript] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [timeLeft, setTimeLeft] = useState(1800); // 30m
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+  // 1-Click Vocab
+  const [selectedText, setSelectedText] = useState("");
+  const [extractLoading, setExtractLoading] = useState(false);
+  const [vocabToast, setVocabToast] = useState(null);
+
+  useEffect(() => {
+    let timer;
+    if (isTimerRunning && timeLeft > 0) {
+      timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    } else if (timeLeft === 0 && isTimerRunning) {
+      setIsTimerRunning(false);
+      handleGrade();
+    }
+    return () => clearInterval(timer);
+  }, [isTimerRunning, timeLeft]);
+
+  const formatTimer = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
 
   async function handleGenerateTest() {
     setGenLoading(true);
     setGradedResult(null);
     setUserAnswers({});
+    setFlagged({});
     setTestData(null);
     setShowTranscript(false);
+    setTimeLeft(1800);
+
     try {
       const res = await fetch("/api/ai/listening", {
         method: "POST",
@@ -30,6 +56,7 @@ export function ListeningPanel({ history, setHistory, supabase, userId }) {
       const data = await res.json();
       if (data.transcript) {
         setTestData(data);
+        setIsTimerRunning(true);
       } else {
         alert("Không tạo được bài Listening, vui lòng thử lại.");
       }
@@ -39,8 +66,59 @@ export function ListeningPanel({ history, setHistory, supabase, userId }) {
     setGenLoading(false);
   }
 
+  function handleMouseUpTranscript() {
+    const sel = window.getSelection();
+    const txt = sel ? sel.toString().trim() : "";
+    if (txt && txt.length > 2 && txt.length < 50) {
+      setSelectedText(txt);
+    } else {
+      setSelectedText("");
+    }
+  }
+
+  async function handleSaveSelectedVocab() {
+    if (!selectedText) return;
+    setExtractLoading(true);
+    try {
+      const res = await fetch("/api/ai/vocab-extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word: selectedText, contextSentence: testData?.transcript?.slice(0, 300) }),
+      });
+      const data = await res.json();
+      if (data.word) {
+        const newVocab = {
+          user_id: userId,
+          word: data.word,
+          pos: data.pos || "Danh từ",
+          definition_en: data.definition_en || "",
+          example_en: data.example_en || "",
+          synonyms: data.synonyms || [],
+          status: "passive",
+          ease_factor: 2.5,
+          interval_days: 1,
+          repetitions: 0,
+        };
+
+        if (supabase) {
+          const { data: inserted } = await supabase.from("vocabulary").insert(newVocab).select().single();
+          if (inserted && setVocabList) {
+            setVocabList((prev) => [inserted, ...prev]);
+          }
+        }
+        setVocabToast(`Đã lưu "${data.word}" (${data.pos}) vào kho từ vựng SM-2!`);
+        setTimeout(() => setVocabToast(null), 4000);
+        setSelectedText("");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setExtractLoading(false);
+  }
+
   async function handleGrade() {
     if (!testData) return;
+    setIsTimerRunning(false);
     try {
       const answersArr = testData.questions.map((q) => userAnswers[q.id] || "");
       const res = await fetch("/api/ai/listening", {
@@ -56,6 +134,8 @@ export function ListeningPanel({ history, setHistory, supabase, userId }) {
       setGradedResult(data);
       setShowTranscript(true);
 
+      const band = rawToBand(data.score, data.total);
+
       // Save to Supabase
       const record = {
         user_id: userId,
@@ -67,14 +147,16 @@ export function ListeningPanel({ history, setHistory, supabase, userId }) {
         total_questions: data.total,
       };
 
-      const { data: inserted, error } = await supabase
-        .from("listening_tests")
-        .insert(record)
-        .select()
-        .single();
+      if (supabase) {
+        const { data: inserted, error } = await supabase
+          .from("listening_tests")
+          .insert(record)
+          .select()
+          .single();
 
-      if (!error && inserted) {
-        setHistory((prev) => [inserted, ...prev]);
+        if (!error && inserted) {
+          setHistory((prev) => [{ ...inserted, band }, ...prev]);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -86,7 +168,7 @@ export function ListeningPanel({ history, setHistory, supabase, userId }) {
       <div className="card form-row">
         <input
           className="input-field"
-          placeholder="Chủ đề bài nghe (vd: Travel Booking, Campus Orientation...)"
+          placeholder="Chủ đề bài nghe (vd: Travel Booking, Campus Orientation, Academic Lecture...)"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
         />
@@ -99,20 +181,32 @@ export function ListeningPanel({ history, setHistory, supabase, userId }) {
         </button>
       </div>
 
+      {vocabToast && (
+        <div style={{ padding: "10px 16px", background: "var(--jade)", color: "#000", fontWeight: "600", borderRadius: "8px", marginBottom: "16px" }}>
+          ✓ {vocabToast}
+        </div>
+      )}
+
       {testData && (
         <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "10px" }}>
-            <h3 className="section-title" style={{ margin: 0 }}>Audio Player & Bài nghe</h3>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <span style={{ fontSize: "12px", color: "var(--text-soft)" }}>
-                {testData.accent === "en-GB" ? "🇬🇧 British" : 
-                 testData.accent === "en-AU" ? "🇦🇺 Australian" : 
-                 testData.accent === "en-US" ? "🇺🇸 American" : "🌎 Global"}
+          {/* Audio Player & Controls */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px", background: "var(--ink-2)", padding: "12px 16px", borderRadius: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span className="chip" style={{ fontSize: "12px" }}>
+                {testData.accent === "en-GB" ? "🇬🇧 British Accent" : 
+                 testData.accent === "en-AU" ? "🇦🇺 Australian Accent" : 
+                 testData.accent === "en-US" ? "🇺🇸 American Accent" : "🌎 Global Accent"}
               </span>
-              <select className="select-field" value={speed} onChange={(e) => setSpeed(parseFloat(e.target.value))} style={{ padding: "4px 8px" }}>
-                <option value={0.8}>Tốc độ 0.8x (Chậm)</option>
-                <option value={1}>Tốc độ 1.0x (Chuẩn)</option>
-                <option value={1.2}>Tốc độ 1.2x (Nhanh)</option>
+              <span className="chip chip-active" style={{ fontSize: "12px" }}>
+                <Clock size={12} /> {formatTimer(timeLeft)}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <select className="select-field" value={speed} onChange={(e) => setSpeed(parseFloat(e.target.value))} style={{ padding: "4px 8px", width: "auto" }}>
+                <option value={0.8}>0.8x (Chậm)</option>
+                <option value={1}>1.0x (Chuẩn)</option>
+                <option value={1.2}>1.2x (Nhanh)</option>
               </select>
               <button className="btn-primary" onClick={() => speak(testData.transcript, speed, testData.accent)}>
                 <Volume2 size={16} /> Phát Audio bài nghe
@@ -120,20 +214,90 @@ export function ListeningPanel({ history, setHistory, supabase, userId }) {
             </div>
           </div>
 
+          {/* Transcript (Show after grading or on toggle) */}
           {showTranscript && (
-            <div style={{ background: "var(--ink)", padding: "12px", borderRadius: "8px", marginBottom: "16px", borderLeft: "3px solid var(--amber)" }}>
-              <p style={{ fontWeight: "600", fontSize: "12px", color: "var(--amber)", marginBottom: "4px" }}>TRANSCRIPT BÀI NGHE:</p>
-              <p style={{ fontSize: "13px", lineHeight: "1.6" }}>{testData.transcript}</p>
+            <div 
+              onMouseUp={handleMouseUpTranscript}
+              style={{ background: "var(--ink-2)", padding: "16px", borderRadius: "8px", marginBottom: "16px", borderLeft: "3px solid var(--amber)", userSelect: "text" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <p style={{ fontWeight: "700", fontSize: "13px", color: "var(--amber)", margin: 0 }}>TRANSCRIPT BÀI NGHE (Bôi đen từ để trích xuất từ vựng):</p>
+                {selectedText && (
+                  <button
+                    className="btn-ghost"
+                    style={{ borderColor: "var(--jade-light)", color: "var(--jade-light)", fontSize: "12px", padding: "4px 10px" }}
+                    onClick={handleSaveSelectedVocab}
+                    disabled={extractLoading}
+                  >
+                    <BookmarkPlus size={13} /> Lưu từ "{selectedText}"
+                  </button>
+                )}
+              </div>
+              <p style={{ fontSize: "14px", lineHeight: "1.8", margin: 0 }}>{testData.transcript}</p>
             </div>
           )}
 
+          {/* Question Palette */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+            <Layers size={15} color="var(--amber)" />
+            <strong style={{ fontSize: "12px" }}>Chuyển câu:</strong>
+            <div style={{ display: "flex", gap: "6px" }}>
+              {testData.questions.map((q, idx) => (
+                <button
+                  key={q.id}
+                  onClick={() => {
+                    const el = document.getElementById(`l_q_block_${q.id}`);
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  style={{
+                    width: "26px",
+                    height: "26px",
+                    borderRadius: "4px",
+                    fontSize: "11px",
+                    fontWeight: "600",
+                    border: flagged[q.id] ? "2px solid var(--amber)" : "1px solid var(--border-soft)",
+                    background: userAnswers[q.id] ? "var(--jade-light)" : "var(--ink-3)",
+                    color: userAnswers[q.id] ? "#000" : "var(--text-main)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {idx + 1}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <h4 style={{ margin: "16px 0 10px", fontSize: "14px" }}>Câu hỏi bài nghe (Questions)</h4>
           {testData.questions.map((q, idx) => (
-            <div key={q.id} style={{ marginBottom: "14px", paddingBottom: "10px", borderBottom: "1px solid var(--border-soft)" }}>
-              <p style={{ fontWeight: "600", fontSize: "13px" }}>Câu {idx + 1}: {q.question}</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px" }}>
+            <div key={q.id} id={`l_q_block_${q.id}`} style={{ marginBottom: "14px", padding: "12px", borderRadius: "8px", background: "var(--ink-2)", border: "1px solid var(--border-soft)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <p style={{ fontWeight: "600", fontSize: "13.5px", margin: 0 }}>
+                  <span style={{ color: "var(--amber)", marginRight: "6px" }}>Q{idx + 1}.</span> {q.question}
+                </p>
+                <button
+                  onClick={() => setFlagged((prev) => ({ ...prev, [q.id]: !prev[q.id] }))}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: flagged[q.id] ? "var(--amber)" : "var(--text-soft)" }}
+                >
+                  <Flag size={13} />
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px" }}>
                 {q.options.map((opt) => (
-                  <label key={opt} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
+                  <label 
+                    key={opt} 
+                    style={{ 
+                      display: "flex", 
+                      alignItems: "center", 
+                      gap: "8px", 
+                      fontSize: "13px", 
+                      cursor: "pointer",
+                      padding: "6px 10px",
+                      borderRadius: "6px",
+                      background: userAnswers[q.id] === opt ? "var(--ink-3)" : "transparent",
+                      border: userAnswers[q.id] === opt ? "1px solid var(--amber)" : "1px solid transparent"
+                    }}
+                  >
                     <input
                       type="radio"
                       name={`l_q_${q.id}`}
@@ -149,40 +313,47 @@ export function ListeningPanel({ history, setHistory, supabase, userId }) {
 
               {gradedResult && (
                 <div className="ai-feedback" style={{ marginTop: "8px" }}>
-                  {gradedResult.details[idx].isCorrect ? (
-                    <p style={{ color: "var(--jade-light)", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                  {gradedResult.details[idx]?.isCorrect ? (
+                    <p style={{ color: "var(--jade-light)", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", margin: 0 }}>
                       <CheckCircle2 size={14} /> Chính xác!
                     </p>
                   ) : (
-                    <p style={{ color: "var(--coral)", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <p style={{ color: "var(--coral)", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", margin: 0 }}>
                       <XCircle size={14} /> Sai. Đáp án đúng: {q.answer}
                     </p>
                   )}
-                  <p style={{ fontSize: "12px", marginTop: "4px" }}>{q.explanation}</p>
+                  <p style={{ fontSize: "12px", marginTop: "4px", color: "var(--text-soft)" }}>{q.explanation}</p>
                 </div>
               )}
             </div>
           ))}
 
           {!gradedResult ? (
-            <button className="btn-primary" onClick={handleGrade} style={{ width: "100%", justifyContent: "center", marginTop: "10px" }}>
-              Nộp bài & Chấm điểm
+            <button className="btn-primary" onClick={handleGrade} style={{ width: "100%", justifyContent: "center", marginTop: "10px", padding: "12px" }}>
+              <CheckCircle2 size={16} /> Nộp bài & Xem Band điểm IELTS
             </button>
           ) : (
-            <div style={{ textAlign: "center", padding: "10px", background: "var(--ink)", borderRadius: "8px", marginTop: "10px" }}>
-              <h4 style={{ color: "var(--amber)", margin: 0 }}>Kết quả: {gradedResult.score} / {gradedResult.total} câu đúng</h4>
-              {!showTranscript && (
-                <button className="btn-ghost" onClick={() => setShowTranscript(true)} style={{ marginTop: "8px" }}>
-                  Xem Transcript bài nghe
-                </button>
-              )}
+            <div style={{ textAlign: "center", padding: "16px", background: "var(--ink)", borderRadius: "8px", marginTop: "12px", border: "1px solid var(--amber)" }}>
+              <h4 style={{ color: "var(--amber)", margin: "0 0 6px 0", fontSize: "16px" }}>
+                Kết quả: {gradedResult.score} / {gradedResult.total} câu đúng
+              </h4>
+              <div style={{ display: "inline-block", padding: "4px 12px", background: "var(--jade)", color: "#000", fontWeight: "700", borderRadius: "20px", fontSize: "14px", marginBottom: "10px" }}>
+                Estimated Band: {rawToBand(gradedResult.score, gradedResult.total)}
+              </div>
+              <div>
+                {!showTranscript && (
+                  <button className="btn-ghost" onClick={() => setShowTranscript(true)} style={{ marginTop: "4px" }}>
+                    Xem Transcript & Trích xuất từ vựng
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
       )}
 
       {/* History */}
-      <div className="card">
+      <div className="card" style={{ marginTop: "16px" }}>
         <h3 className="section-title">Lịch sử làm bài Listening</h3>
         {history.length === 0 ? (
           <EmptyState text="Chưa có bài kiểm tra Listening nào." />
@@ -191,7 +362,10 @@ export function ListeningPanel({ history, setHistory, supabase, userId }) {
             {history.map((h) => (
               <div key={h.id} className="history-item">
                 <div>
-                  <strong>{h.audio_topic}</strong> · Kết quả: {h.score}/{h.total_questions}
+                  <strong>{h.audio_topic}</strong> · Đúng: {h.score}/{h.total_questions}
+                  <span className="chip" style={{ marginLeft: "10px", fontSize: "11px" }}>
+                    Band {h.band || rawToBand(h.score, h.total_questions)}
+                  </span>
                 </div>
                 <span className="small-note">{fmtDate(h.created_at)}</span>
               </div>
@@ -202,3 +376,4 @@ export function ListeningPanel({ history, setHistory, supabase, userId }) {
     </div>
   );
 }
+
