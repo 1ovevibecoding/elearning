@@ -3,15 +3,15 @@
 import { useState, useMemo } from "react";
 import {
   Plus, Sparkles, ChevronDown, ChevronUp, BrainCircuit,
-  BookOpen, Globe, CheckSquare, Square, X, Languages,
-  Volume2, Loader2, BookText, Layers
+  BookOpen, CheckSquare, Square, X, Languages,
+  Loader2, BookText, Layers, Trash2, Sparkle
 } from "lucide-react";
 import { Badge } from "./ui/Badge";
 import { Spinner } from "./ui/Spinner";
 import { EmptyState } from "./ui/EmptyState";
-import { POS_OPTIONS, SM2_RATINGS, sm2, fmtDate } from "@/lib/utils";
+import { SM2_RATINGS, sm2, fmtDate } from "@/lib/utils";
 
-/* ─── Constants ─── */
+/* ─── Constants & Helpers ─── */
 const POS_ABBREV = {
   noun: "n.", "danh từ": "n.", adjective: "adj.", "tính từ": "adj.",
   verb: "v.", "động từ": "v.", adverb: "adv.", "trạng từ": "adv.",
@@ -21,8 +21,34 @@ function getPosAbbrev(pos) {
   return POS_ABBREV[(pos || "").toLowerCase()] || pos?.slice(0, 4) + ".";
 }
 
+const CEFR_COLORS = {
+  A1: { bg: "rgba(46, 204, 113, 0.15)", border: "rgba(46, 204, 113, 0.35)", text: "#2ecc71" },
+  A2: { bg: "rgba(39, 174, 96, 0.15)",  border: "rgba(39, 174, 96, 0.35)",  text: "#27ae60" },
+  B1: { bg: "rgba(52, 152, 219, 0.15)", border: "rgba(52, 152, 219, 0.35)", text: "#3498db" },
+  B2: { bg: "rgba(155, 89, 182, 0.15)", border: "rgba(155, 89, 182, 0.35)", text: "#9b59b6" },
+  C1: { bg: "rgba(230, 126, 34, 0.15)", border: "rgba(230, 126, 34, 0.35)", text: "#e67e22" },
+  C2: { bg: "rgba(231, 76, 60, 0.15)",  border: "rgba(231, 76, 60, 0.35)",  text: "#e74c3c" },
+};
+
+function CefrBadge({ level }) {
+  const lvl = (level || "B2").toUpperCase();
+  const style = CEFR_COLORS[lvl] || CEFR_COLORS.B2;
+  return (
+    <span
+      className="cefr-badge"
+      style={{
+        background: style.bg,
+        borderColor: style.border,
+        color: style.text,
+      }}
+    >
+      {lvl}
+    </span>
+  );
+}
+
 /* ─── Word Family Row ─── */
-function WordFamilyRow({ entry, wordId, onTranslated, supabase, vocabId }) {
+function WordFamilyRow({ entry, onTranslated }) {
   const [loading, setLoading] = useState(false);
 
   async function handleTranslate() {
@@ -74,7 +100,6 @@ function ReadingModal({ passage, onClose }) {
 
   if (!passage) return null;
 
-  // Highlight vocabulary words in passage
   function renderPassage(text, words) {
     if (!words || words.length === 0) return text;
     const pattern = new RegExp(`\\b(${words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`, "gi");
@@ -98,7 +123,6 @@ function ReadingModal({ passage, onClose }) {
         </div>
 
         <div className="reading-modal-body">
-          {/* Vocab words used */}
           <div className="used-words-bar">
             <span className="used-words-label"><Layers size={12} /> Từ vựng trong bài:</span>
             {passage.highlighted_words?.map(w => (
@@ -106,14 +130,12 @@ function ReadingModal({ passage, onClose }) {
             ))}
           </div>
 
-          {/* Passage */}
           <div className="reading-passage">
             <p className="passage-text">
               {renderPassage(passage.passage, passage.highlighted_words)}
             </p>
           </div>
 
-          {/* Questions */}
           {passage.questions?.length > 0 && (
             <div className="reading-questions">
               <h3 className="qs-title">Câu hỏi hiểu bài</h3>
@@ -142,7 +164,6 @@ function ReadingModal({ passage, onClose }) {
             </div>
           )}
 
-          {/* Writing prompt */}
           {passage.writing_prompt && (
             <div className="writing-prompt-box">
               <div className="wp-header"><BookText size={14} /> Bài tập Writing</div>
@@ -161,16 +182,23 @@ function ReadingModal({ passage, onClose }) {
 }
 
 /* ─── Single Vocab Card ─── */
-function VocabCard({ item, loadingId, setLoadingId, onUpdate, supabase, selected, onToggleSelect }) {
+function VocabCard({ item, loadingId, setLoadingId, onUpdate, onDelete, supabase, selected, onToggleSelect }) {
   const [open, setOpen] = useState(false);
   const [explanation, setExplanation] = useState("");
   const [cloze, setCloze] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const isLoading = loadingId === item.id;
   const isDue = item.due_date && item.due_date <= new Date().toISOString();
   const wordFamily = item.word_family || [];
 
-  // Translate a word family entry
+  async function handleDelete(e) {
+    e.stopPropagation();
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa từ "${item.word}"?`)) return;
+    setDeleting(true);
+    await onDelete(item.id);
+  }
+
   async function handleTranslateFamily(targetWord, meaningVi) {
     const newFamily = wordFamily.map(f =>
       f.word === targetWord ? { ...f, meaning_vi: meaningVi, is_translated: true } : f
@@ -179,7 +207,6 @@ function VocabCard({ item, loadingId, setLoadingId, onUpdate, supabase, selected
     onUpdate(item.id, { word_family: newFamily });
   }
 
-  // Feynman submission
   async function handleSubmitFeynman() {
     setLoadingId(item.id);
     try {
@@ -204,7 +231,6 @@ function VocabCard({ item, loadingId, setLoadingId, onUpdate, supabase, selected
     setLoadingId(null);
   }
 
-  // Cloze generation
   async function handleGenerateCloze() {
     setLoadingId(item.id);
     setCloze(null);
@@ -223,7 +249,6 @@ function VocabCard({ item, loadingId, setLoadingId, onUpdate, supabase, selected
     setLoadingId(null);
   }
 
-  // SM-2
   async function handleSM2(q, feynmanResult = null) {
     const { newEF, newInterval, newReps, dueDate, status } = sm2(
       q, item.ease_factor || 2.5, item.repetitions || 0, item.interval_days || 1
@@ -241,10 +266,9 @@ function VocabCard({ item, loadingId, setLoadingId, onUpdate, supabase, selected
   const isActive = item.status === "active";
 
   return (
-    <div className={`card vocab-card ${selected ? "vocab-card-selected" : ""}`}>
+    <div className={`card vocab-card ${selected ? "vocab-card-selected" : ""} ${deleting ? "deleting" : ""}`}>
       <div className="vocab-card-head" onClick={() => setOpen(o => !o)}>
         <div className="vocab-head-left">
-          {/* Checkbox for reading generation */}
           <button
             className="vocab-checkbox"
             onClick={(e) => { e.stopPropagation(); onToggleSelect(item.id); }}
@@ -255,13 +279,22 @@ function VocabCard({ item, loadingId, setLoadingId, onUpdate, supabase, selected
               : <Square size={16} color="var(--text-soft)" />}
           </button>
           <span className="vocab-word">{item.word}</span>
-          <span className="pos-tag">{item.pos}</span>
+          <span className="pos-tag">{item.pos || "Danh từ"}</span>
+          <CefrBadge level={item.cefr_level || "B2"} />
         </div>
         <div className="vocab-head-right">
           <Badge tone={isActive ? "active" : "passive"}>
             {isActive ? "Chủ động" : "Thụ động"}
           </Badge>
           {isDue && <Badge tone="due">Cần ôn</Badge>}
+          <button
+            className="btn-delete-word"
+            onClick={handleDelete}
+            disabled={deleting}
+            title="Xóa từ này"
+          >
+            {deleting ? <Loader2 size={14} className="spin" /> : <Trash2 size={14} />}
+          </button>
           {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
       </div>
@@ -280,7 +313,7 @@ function VocabCard({ item, loadingId, setLoadingId, onUpdate, supabase, selected
             </p>
           )}
 
-          {/* ─── Word Family ─── */}
+          {/* Word Family */}
           {wordFamily.length > 0 && (
             <div className="word-family-section">
               <div className="wf-header">
@@ -291,16 +324,14 @@ function VocabCard({ item, loadingId, setLoadingId, onUpdate, supabase, selected
                   <WordFamilyRow
                     key={i}
                     entry={entry}
-                    wordId={item.id}
                     onTranslated={handleTranslateFamily}
-                    supabase={supabase}
                   />
                 ))}
               </div>
             </div>
           )}
 
-          {/* ─── SM-2 Review ─── */}
+          {/* SM-2 Review */}
           <div style={{ marginTop: 16, padding: 12, background: "var(--ink-2)", borderRadius: 8, border: "1px solid var(--border-soft)" }}>
             <strong style={{ fontSize: 13, display: "block", marginBottom: 8 }}>Đánh giá trí nhớ (SM-2 SRS)</strong>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -322,14 +353,13 @@ function VocabCard({ item, loadingId, setLoadingId, onUpdate, supabase, selected
             )}
           </div>
 
-          {/* ─── Active Recall Tools ─── */}
+          {/* Active Recall Tools */}
           <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
             <button className="btn-ghost" style={{ flex: 1 }} onClick={handleGenerateCloze} disabled={isLoading}>
               {isLoading && !cloze ? <Spinner label="Đang tạo..." /> : <><BrainCircuit size={14} /> Cloze Test</>}
             </button>
           </div>
 
-          {/* Cloze Test */}
           {cloze && (
             <div style={{ marginTop: 12, padding: 12, background: "var(--ink-3)", borderRadius: 8, borderLeft: "3px solid var(--jade)" }}>
               <strong style={{ fontSize: 12, color: "var(--jade-light)" }}>Contextual Cloze Test</strong>
@@ -343,7 +373,7 @@ function VocabCard({ item, loadingId, setLoadingId, onUpdate, supabase, selected
             </div>
           )}
 
-          {/* ─── Feynman Technique ─── */}
+          {/* Feynman Technique */}
           <div className="feynman-box" style={{ marginTop: 16 }}>
             <label className="label-text">Feynman: tự giải thích từ này bằng tiếng Anh</label>
             <textarea
@@ -392,10 +422,9 @@ function DayGroupHeader({ dateStr, count, dueCount }) {
   );
 }
 
-/* ─── Vocab Tab ─── */
+/* ─── Vocab Tab Main Component ─── */
 export function VocabTab({ vocabList, setVocabList, supabase, userId }) {
   const [word, setWord] = useState("");
-  const [pos, setPos] = useState(POS_OPTIONS[0]);
   const [filter, setFilter] = useState("all");
   const [groupByDay, setGroupByDay] = useState(false);
   const [loadingId, setLoadingId] = useState(null);
@@ -403,19 +432,33 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [readingLoading, setReadingLoading] = useState(false);
   const [readingPassage, setReadingPassage] = useState(null);
+  const [duplicateWarning, setDuplicateWarning] = useState("");
 
-  /* Add word — calls AI immediately on add */
+  /* Check & Add Word — Auto AI analysis & Duplicate rejection */
   async function addWord() {
     if (!word.trim() || addingWord) return;
     const trimmed = word.trim();
+
+    // Check duplicate
+    const isDuplicate = vocabList.some(
+      v => v.word.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) {
+      setDuplicateWarning(`Từ "${trimmed}" đã có trong danh sách từ vựng của bạn!`);
+      setTimeout(() => setDuplicateWarning(""), 4000);
+      return;
+    }
+
+    setDuplicateWarning("");
     setAddingWord(true);
     setWord("");
 
-    // Insert a placeholder first
+    // Create item placeholder
     const placeholder = {
       user_id: userId,
       word: trimmed,
-      pos,
+      pos: "Danh từ",
+      cefr_level: "B2",
       status: "passive",
       definition_en: "",
       example_en: "",
@@ -441,15 +484,14 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId }) {
     const tempId = inserted?.id || crypto.randomUUID();
     const tempItem = { ...placeholder, id: tempId };
 
-    // Optimistically add placeholder to list
     setVocabList(prev => [tempItem, ...prev]);
 
-    // Call AI to enrich
+    // Call AI to analyze POS, CEFR level, active/passive & word family
     try {
       const res = await fetch("/api/ai/vocab", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ word: trimmed, pos }),
+        body: JSON.stringify({ word: trimmed }),
       });
       const result = await res.json();
 
@@ -458,7 +500,8 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId }) {
           definition_en: result.definition_en || "",
           example_en: result.example_en || "",
           synonyms: result.synonyms || [],
-          pos: result.pos_detected || pos,
+          pos: result.pos_detected || "Danh từ",
+          cefr_level: result.cefr_level || "B2",
           status: result.vocab_type === "active" ? "active" : "passive",
           vocab_type_reason: result.vocab_type_reason || "",
           word_family: result.word_family || [],
@@ -472,6 +515,51 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId }) {
     }
 
     setAddingWord(false);
+  }
+
+  /* Delete word */
+  async function handleDeleteWord(id) {
+    try {
+      await supabase.from("vocabulary").delete().eq("id", id);
+      setVocabList(prev => prev.filter(v => v.id !== id));
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    } catch (e) {
+      alert("Lỗi khi xóa từ.");
+    }
+  }
+
+  /* Clean all duplicate words in DB */
+  async function handleCleanDuplicates() {
+    const seen = new Set();
+    const toDeleteIds = [];
+
+    vocabList.forEach(v => {
+      const norm = v.word.toLowerCase();
+      if (seen.has(norm)) {
+        toDeleteIds.push(v.id);
+      } else {
+        seen.add(norm);
+      }
+    });
+
+    if (toDeleteIds.length === 0) {
+      alert("Không có từ nào bị trùng lặp!");
+      return;
+    }
+
+    if (!window.confirm(`Tìm thấy ${toDeleteIds.length} từ trùng lặp. Bạn có muốn xóa chúng không?`)) return;
+
+    try {
+      await supabase.from("vocabulary").delete().in("id", toDeleteIds);
+      setVocabList(prev => prev.filter(v => !toDeleteIds.includes(v.id)));
+      alert(`Đã dọn dẹp ${toDeleteIds.length} từ trùng lặp!`);
+    } catch (e) {
+      alert("Lỗi khi dọn từ trùng.");
+    }
   }
 
   function handleUpdateLocal(id, updates) {
@@ -518,6 +606,16 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId }) {
     });
   }, [vocabList, filter]);
 
+  /* Detect duplicates count */
+  const duplicateCount = useMemo(() => {
+    const counts = {};
+    vocabList.forEach(v => {
+      const norm = v.word.toLowerCase();
+      counts[norm] = (counts[norm] || 0) + 1;
+    });
+    return Object.values(counts).filter(c => c > 1).reduce((a, b) => a + (b - 1), 0);
+  }, [vocabList]);
+
   /* Group by study date */
   const grouped = useMemo(() => {
     if (!groupByDay) return null;
@@ -534,34 +632,38 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId }) {
 
   return (
     <div className="panel">
-      {/* ─── Add Word Form ─── */}
+      {/* ─── Add Word Form (Manual POS dropdown removed, auto AI analysis) ─── */}
       <div className="card form-row">
         <input
           className="input-field"
-          placeholder="Nhập từ mới (vd: meticulous)"
+          style={{ flex: 1 }}
+          placeholder="Nhập từ mới (vd: meticulous, Ubiquitous, Paraphrase)"
           value={word}
-          onChange={(e) => setWord(e.target.value)}
+          onChange={(e) => { setWord(e.target.value); setDuplicateWarning(""); }}
           onKeyDown={(e) => e.key === "Enter" && addWord()}
           disabled={addingWord}
         />
-        <select className="select-field" value={pos} onChange={(e) => setPos(e.target.value)} disabled={addingWord}>
-          {POS_OPTIONS.map(p => <option key={p}>{p}</option>)}
-        </select>
         <button className="btn-primary" onClick={addWord} disabled={addingWord || !word.trim()}>
           {addingWord
-            ? <><Loader2 size={14} className="spin" /> Đang phân tích...</>
-            : <><Sparkles size={14} /> Thêm & Phân tích</>}
+            ? <><Loader2 size={14} className="spin" /> Đang phân tích AI...</>
+            : <><Sparkles size={14} /> Thêm & Phân tích AI</>}
         </button>
       </div>
+
+      {duplicateWarning && (
+        <div className="duplicate-warning-banner">
+          ⚠️ {duplicateWarning}
+        </div>
+      )}
 
       {addingWord && (
         <div className="ai-analyzing-bar">
           <Loader2 size={13} className="spin" />
-          AI đang phân tích: POS, chủ động/thụ động, word family...
+          AI đang tự động xác định: Loại từ (POS), Cấp độ CEFR (A1-C2), Chủ động/Thụ động & Word Family...
         </div>
       )}
 
-      {/* ─── Filter & View Toggle ─── */}
+      {/* ─── Filter & View Toggle Bar ─── */}
       <div className="filter-bar" style={{ marginTop: 20 }}>
         <div className="sub-tab-row">
           <button className={`chip ${filter === "all" ? "chip-active" : ""}`} onClick={() => setFilter("all")}>
@@ -577,13 +679,25 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId }) {
             Thụ động
           </button>
         </div>
-        <button
-          className={`chip ${groupByDay ? "chip-active" : ""}`}
-          onClick={() => setGroupByDay(g => !g)}
-          title="Nhóm theo ngày học"
-        >
-          <Layers size={13} /> Theo ngày
-        </button>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {duplicateCount > 0 && (
+            <button
+              className="chip chip-warn"
+              onClick={handleCleanDuplicates}
+              title="Xóa các từ trùng lặp"
+            >
+              🧹 Dọn {duplicateCount} từ trùng
+            </button>
+          )}
+          <button
+            className={`chip ${groupByDay ? "chip-active" : ""}`}
+            onClick={() => setGroupByDay(g => !g)}
+            title="Nhóm theo ngày học"
+          >
+            <Layers size={13} /> Theo ngày
+          </button>
+        </div>
       </div>
 
       {/* ─── Vocab List ─── */}
@@ -605,6 +719,7 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId }) {
                   loadingId={loadingId}
                   setLoadingId={setLoadingId}
                   onUpdate={handleUpdateLocal}
+                  onDelete={handleDeleteWord}
                   supabase={supabase}
                   selected={selectedIds.has(item.id)}
                   onToggleSelect={toggleSelect}
@@ -620,6 +735,7 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId }) {
               loadingId={loadingId}
               setLoadingId={setLoadingId}
               onUpdate={handleUpdateLocal}
+              onDelete={handleDeleteWord}
               supabase={supabase}
               selected={selectedIds.has(item.id)}
               onToggleSelect={toggleSelect}
