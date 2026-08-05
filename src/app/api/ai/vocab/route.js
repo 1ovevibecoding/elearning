@@ -36,6 +36,7 @@ export async function POST(request) {
 Return ONLY this JSON structure:
 {
   "word": "${word}",
+  "ipa": "/phonetic transcription using IPA symbols, e.g. /ˌmɛt.ɪˈkjuː.ləs/",
   "definition_en": "clear one-sentence English definition",
   "example_en": "one natural IELTS-level example sentence",
   "synonyms": ["synonym1", "synonym2", "synonym3"],

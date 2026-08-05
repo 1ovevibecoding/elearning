@@ -2,14 +2,14 @@
 
 import { useState, useMemo } from "react";
 import {
-  Plus, Sparkles, ChevronDown, ChevronUp, BrainCircuit,
+  Sparkles, ChevronDown, ChevronUp, BrainCircuit,
   BookOpen, CheckSquare, Square, X, Languages,
-  Loader2, BookText, Layers, Trash2, Sparkle
+  Loader2, BookText, Layers, Trash2, Volume2
 } from "lucide-react";
 import { Badge } from "./ui/Badge";
 import { Spinner } from "./ui/Spinner";
 import { EmptyState } from "./ui/EmptyState";
-import { SM2_RATINGS, sm2, fmtDate } from "@/lib/utils";
+import { SM2_RATINGS, sm2, fmtDate, speak } from "@/lib/utils";
 
 /* ─── Constants & Helpers ─── */
 const POS_ABBREV = {
@@ -278,7 +278,15 @@ function VocabCard({ item, loadingId, setLoadingId, onUpdate, onDelete, supabase
               ? <CheckSquare size={16} color="var(--jade)" />
               : <Square size={16} color="var(--text-soft)" />}
           </button>
+          <button
+            className="btn-speak"
+            onClick={(e) => { e.stopPropagation(); speak(item.word, 0.85, "en-GB"); }}
+            title="Nghe phát âm"
+          >
+            <Volume2 size={14} />
+          </button>
           <span className="vocab-word">{item.word}</span>
+          {item.ipa && <span className="vocab-ipa">{item.ipa}</span>}
           <span className="pos-tag">{item.pos || "Danh từ"}</span>
           <CefrBadge level={item.cefr_level || "B2"} />
         </div>
@@ -500,6 +508,7 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId }) {
           definition_en: result.definition_en || "",
           example_en: result.example_en || "",
           synonyms: result.synonyms || [],
+          ipa: result.ipa || "",
           pos: result.pos_detected || "Danh từ",
           cefr_level: result.cefr_level || "B2",
           status: result.vocab_type === "active" ? "active" : "passive",
