@@ -85,9 +85,9 @@ export default function AppLayoutClient({ children }) {
         setUserStats(statsRes.data || {});
       } catch (err) {
         console.error("Error fetching data:", err);
-        showToast("Lỗi tải dữ liệu từ CSDL");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     fetchData();
   }, [supabase, userId, user?.fullName, user?.firstName]);

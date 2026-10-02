@@ -28,7 +28,7 @@ Return JSON:
 }`;
 
     const result = await askAI(system, user, { userId });
-    if (!result) return Response.json({ error: "AI unavailable" }, { status: 503 });
+    if (!result) return Response.json({ error: "Dịch vụ AI đang bảo trì" }, { status: 503 });
     return Response.json(result);
   });
 }

@@ -1,31 +1,37 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
+const count = 800;
+const [staticPositions, staticColors] = (() => {
+  const pos = new Float32Array(count * 3);
+  const col = new Float32Array(count * 3);
+  const c1 = new THREE.Color("#DA7756");
+  const c2 = new THREE.Color("#C9A35A");
+
+  for (let i = 0; i < count; i++) {
+    // Seeded pseudo-random formula
+    const r1 = ((Math.sin(i * 12.9898 + 1.23) * 43758.5453) % 1 + 1) % 1;
+    const r2 = ((Math.sin(i * 78.233 + 4.56) * 43758.5453) % 1 + 1) % 1;
+    const r3 = ((Math.sin(i * 37.719 + 7.89) * 43758.5453) % 1 + 1) % 1;
+    const r4 = ((Math.sin(i * 91.341 + 2.34) * 43758.5453) % 1 + 1) % 1;
+
+    pos[i * 3] = (r1 - 0.5) * 20;
+    pos[i * 3 + 1] = (r2 - 0.5) * 20;
+    pos[i * 3 + 2] = (r3 - 0.5) * 5;
+
+    const mixed = c1.clone().lerp(c2, r4);
+    col[i * 3] = mixed.r;
+    col[i * 3 + 1] = mixed.g;
+    col[i * 3 + 2] = mixed.b;
+  }
+  return [pos, col];
+})();
+
 function AmbientWave() {
   const pointsRef = useRef();
-
-  const count = 800; // optimized for background
-  const [positions, colors] = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    const col = new Float32Array(count * 3);
-    const c1 = new THREE.Color("#DA7756");
-    const c2 = new THREE.Color("#C9A35A");
-
-    for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 20;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 20;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 5;
-
-      const mixed = c1.clone().lerp(c2, Math.random());
-      col[i * 3] = mixed.r;
-      col[i * 3 + 1] = mixed.g;
-      col[i * 3 + 2] = mixed.b;
-    }
-    return [pos, col];
-  }, [count]);
 
   useFrame((state) => {
     if (!pointsRef.current) return;
@@ -39,11 +45,11 @@ function AmbientWave() {
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          args={[positions, 3]}
+          args={[staticPositions, 3]}
         />
         <bufferAttribute
           attach="attributes-color"
-          args={[colors, 3]}
+          args={[staticColors, 3]}
         />
       </bufferGeometry>
       <pointsMaterial

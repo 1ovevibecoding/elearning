@@ -10,7 +10,6 @@ import { auth } from "@clerk/nextjs/server";
  */
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 /**
  * Helper to safely parse JSON from AI outputs (handling markdown fences and whitespace)
@@ -43,6 +42,7 @@ function parseJsonSafe(text) {
  * Call Groq API (OpenAI-compatible)
  */
 async function callGroq(system, user, maxTokens = 3500) {
+  const model = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
   const res = await fetch(GROQ_URL, {
     method: "POST",
     headers: {
@@ -50,19 +50,20 @@ async function callGroq(system, user, maxTokens = 3500) {
       Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+      model,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
       ],
       temperature: 0.7,
       max_tokens: maxTokens,
-      response_format: { type: "json_object" },
     }),
   });
 
   if (!res.ok) {
-    throw new Error(`Groq API error: ${res.status} ${res.statusText}`);
+    const errorBody = await res.text();
+    console.error(`[Groq Error] Status: ${res.status} ${res.statusText} | Model: ${model} | Body:`, errorBody);
+    throw new Error(`Groq API error (${res.status}): ${errorBody}`);
   }
 
   const data = await res.json();
@@ -74,7 +75,8 @@ async function callGroq(system, user, maxTokens = 3500) {
  * Call Google Gemini API (fallback)
  */
 async function callGemini(system, user, maxTokens = 3500) {
-  const url = `${GEMINI_URL}?key=${process.env.GEMINI_API_KEY}`;
+  const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -90,7 +92,10 @@ async function callGemini(system, user, maxTokens = 3500) {
   });
 
   if (!res.ok) {
-    throw new Error(`Gemini API error: ${res.status} ${res.statusText}`);
+    const errorBody = await res.text();
+    // Do NOT log url to prevent leaking API key
+    console.error(`[Gemini Error] Status: ${res.status} ${res.statusText} | Model: ${model} | Body:`, errorBody);
+    throw new Error(`Gemini API error (${res.status}): ${errorBody}`);
   }
 
   const data = await res.json();
@@ -106,8 +111,9 @@ async function callGemini(system, user, maxTokens = 3500) {
  * @returns {Object|null} Parsed JSON response
  */
 export function handleAIError(e) {
-  if (e.status) return Response.json({ error: e.message }, { status: e.status });
-  return Response.json({ error: "Internal error" }, { status: 500 });
+  const status = e?.status || 500;
+  const message = e?.message && e.message !== "Internal error" ? e.message : "Dịch vụ AI đang bảo trì";
+  return Response.json({ error: message }, { status });
 }
 
 export async function askAI(system, user, options = {}) {
@@ -131,22 +137,39 @@ export async function askAI(system, user, options = {}) {
   const systemWithJson = system + " Respond ONLY with valid JSON, no markdown or explanation.";
 
   let res = null;
-  try {
-    if (process.env.GROQ_API_KEY) {
+  let groqErrorMsg = null;
+  let geminiErrorMsg = null;
+
+  const groqModel = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+  const geminiModel = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+
+  if (process.env.GROQ_API_KEY) {
+    try {
       res = await callGroq(systemWithJson, user, maxTokens);
+    } catch (groqError) {
+      groqErrorMsg = groqError.message;
+      console.warn(`[AI Fallback] Groq failed (${groqModel}), trying Gemini (${geminiModel})...`);
     }
-  } catch (groqError) {
-    console.warn("Groq failed, trying Gemini fallback:", groqError.message);
+  } else {
+    groqErrorMsg = "GROQ_API_KEY is not set";
+  }
+
+  if (!res && process.env.GEMINI_API_KEY) {
+    try {
+      res = await callGemini(systemWithJson, user, maxTokens);
+    } catch (geminiError) {
+      geminiErrorMsg = geminiError.message;
+      console.error(`[AI Error] Gemini failed (${geminiModel}).`);
+    }
+  } else if (!res && !process.env.GEMINI_API_KEY) {
+    geminiErrorMsg = "GEMINI_API_KEY is not set";
   }
 
   if (!res) {
-    try {
-      if (process.env.GEMINI_API_KEY) {
-        res = await callGemini(systemWithJson, user, maxTokens);
-      }
-    } catch (geminiError) {
-      console.error("Both AI providers failed:", geminiError.message);
-    }
+    console.error(`[AI Service Unavailable] Both AI providers failed.\n- Groq: ${groqErrorMsg}\n- Gemini: ${geminiErrorMsg}`);
+    const err = new Error("Dịch vụ AI đang bảo trì");
+    err.status = 503;
+    throw err;
   }
 
   return sanitizeScores(res);

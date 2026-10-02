@@ -12,7 +12,7 @@ export async function POST(request) {
       const user = `Start an IELTS Speaking ${part || "Part 1"} test. Greet the candidate briefly (1 sentence) and ask your first question. Keep the greeting very short and natural, like a real examiner would. Return JSON: {"examiner_text": "<greeting + first question>", "is_final": false}`;
 
       const result = await askAI(system, user, { userId });
-      if (!result) return Response.json({ error: "AI unavailable" }, { status: 503 });
+      if (!result) return Response.json({ error: "Dịch vụ AI đang bảo trì" }, { status: 503 });
       return Response.json(result);
     }
 
@@ -58,7 +58,7 @@ Return JSON:
 }`;
 
       const result = await askAI(system, user, { userId });
-      if (!result) return Response.json({ error: "AI unavailable" }, { status: 503 });
+      if (!result) return Response.json({ error: "Dịch vụ AI đang bảo trì" }, { status: 503 });
       return Response.json(result);
     }
 

@@ -15,7 +15,7 @@ export async function POST(request) {
         "You are an expert IELTS Speaking examiner. Generate an authentic, official-style IELTS Speaking question in English. Respond ONLY with valid JSON.";
       const user = `Generate a realistic IELTS Speaking ${part || "Part 1"} question in English. Return JSON: {"question":"<English question text here>"}`;
       const result = await askAI(system, user);
-      if (!result) return Response.json({ error: "AI unavailable" }, { status: 503 });
+      if (!result) return Response.json({ error: "Dịch vụ AI đang bảo trì" }, { status: 503 });
       return Response.json(result);
     }
 
@@ -27,7 +27,7 @@ export async function POST(request) {
         "You are an official IELTS Speaking examiner evaluating a learner's transcribed response. Evaluate on 0–9 scale with 0.5 increments. Provide concise feedback in Vietnamese for the learner. Respond ONLY with valid JSON.";
       const user = `Question (${part}): "${question}"\n\nTranscribed Answer:\n"${answer}"\n\nScore on criteria evaluatable via text: fluency_coherence, lexical_resource, grammar. Return JSON: {"fluency_coherence": <number 0-9>, "lexical_resource": <number 0-9>, "grammar": <number 0-9>, "band_overall": <number 0-9>, "feedback": "<2-3 sentences of feedback and suggestions in Vietnamese>"}`;
       const result = await askAI(system, user);
-      if (!result) return Response.json({ error: "AI unavailable" }, { status: 503 });
+      if (!result) return Response.json({ error: "Dịch vụ AI đang bảo trì" }, { status: 503 });
       return Response.json(result);
     }
 

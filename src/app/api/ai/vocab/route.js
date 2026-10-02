@@ -19,7 +19,7 @@ export async function POST(request) {
       const system = "You are a Vietnamese English dictionary. Respond ONLY with valid JSON.";
       const user = `Translate the English word "${word}" to Vietnamese. Return ONLY: {"meaning_vi": "nghĩa tiếng Việt ngắn gọn, 1-5 từ"}`;
       const result = await askAI(system, user);
-      if (!result) return Response.json({ error: "AI unavailable" }, { status: 503 });
+      if (!result) return Response.json({ error: "Dịch vụ AI đang bảo trì" }, { status: 503 });
       return Response.json(result);
     }
 
@@ -68,7 +68,7 @@ Include 2-5 words in word_family (the word itself + its morphological relatives)
 
     const result = await askAI(system, user);
     if (!result) {
-      return Response.json({ error: "AI unavailable" }, { status: 503 });
+      return Response.json({ error: "Dịch vụ AI đang bảo trì" }, { status: 503 });
     }
 
     return Response.json(result);

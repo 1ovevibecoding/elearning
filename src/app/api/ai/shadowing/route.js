@@ -16,7 +16,7 @@ export async function POST(request) {
 
     const result = await askAI(system, user);
     if (!result) {
-      return Response.json({ error: "AI unavailable" }, { status: 503 });
+      return Response.json({ error: "Dịch vụ AI đang bảo trì" }, { status: 503 });
     }
 
     return Response.json(result);

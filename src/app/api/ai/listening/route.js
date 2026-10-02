@@ -54,7 +54,7 @@ Return JSON in this EXACT format:
 }`;
 
       const result = await askAI(system, user, { userId });
-      if (!result) return Response.json({ error: "AI unavailable" }, { status: 503 });
+      if (!result) return Response.json({ error: "Dịch vụ AI đang bảo trì" }, { status: 503 });
 
       // Flatten all questions for grading compatibility
       const allQuestions = (result.sections || []).flatMap(s => s.questions || []);

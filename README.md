@@ -11,8 +11,15 @@ Create `.env.local`:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `GROQ_API_KEY`
 - `GEMINI_API_KEY`
+- `GROQ_MODEL` *(tùy chọn, mặc định: `"openai/gpt-oss-120b"`)*
+- `GEMINI_MODEL` *(tùy chọn, mặc định: `"gemini-3.5-flash"`)*
 
-## Setup
+## Setup & Scripts
 1. `npm install`
-2. Run SQL migrations in `supabase/migrations/` sequentially.
-3. `npm run dev`
+2. Chạy SQL migrations trong `supabase/migrations/` tuần tự.
+3. Kiểm tra kết nối AI providers:
+   ```bash
+   npm run check-ai
+   # hoặc: node scripts/check-ai.mjs
+   ```
+4. `npm run dev`

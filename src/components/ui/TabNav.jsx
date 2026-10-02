@@ -86,26 +86,26 @@ export function TabNav() {
 
       {/* Mobile Bottom Nav */}
       <div className="mobile-bottom-nav">
-        {[
-          { href: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
-          { href: "/vocab", label: "Từ vựng", icon: BookOpen },
-          { href: "/writing-speaking", label: "IELTS", icon: PenLine },
-          { href: "/reading", label: "Reading", icon: BookOpenCheck },
-          { href: "/diagnostic", label: "Test", icon: Compass },
-        ].map((item) => {
-          const active = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`mobile-nav-item ${active ? "active" : ""}`}
-              aria-current={active ? "page" : undefined}
-            >
-              <item.icon size={20} />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+          {[
+            { href: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
+            { href: "/vocab", label: "Từ vựng", icon: BookOpen },
+            { href: "/writing-speaking", label: "IELTS", icon: PenLine },
+            { href: "/reading", label: "Reading", icon: BookOpenCheck },
+            { href: "/diagnostic", label: "Test", icon: Compass },
+          ].map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`mobile-nav-item ${active ? "active" : ""}`}
+                aria-current={active ? "page" : undefined}
+              >
+                <item.icon size={20} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
       </div>
     </>
   );
