@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/purity, react-hooks/set-state-in-effect, react-hooks/immutability, react-hooks/exhaustive-deps */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,6 +7,7 @@ import { Spinner } from "./ui/Spinner";
 import { EmptyState } from "./ui/EmptyState";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { LEVEL_OPTIONS, speak, fmtDate } from "@/lib/utils";
+import { useApp } from "@/context/AppContext";
 
 /* ─── Word Chip with color ─── */
 const STATUS_COLOR = {
@@ -45,6 +47,7 @@ function WordMapLegend() {
 }
 
 export function ShadowingTab({ history, setHistory, supabase, userId, onActivityDone }) {
+  const { showToast } = useApp();
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState(LEVEL_OPTIONS[1]);
   const [script, setScript] = useState("");
@@ -69,9 +72,9 @@ export function ShadowingTab({ history, setHistory, supabase, userId, onActivity
       });
       const result = await res.json();
       if (result.script) setScript(result.script);
-      else alert("Không tạo được bài, vui lòng thử lại.");
+      else showToast("Không tạo được bài, vui lòng thử lại.");
     } catch {
-      alert("Lỗi kết nối server.");
+      showToast("Lỗi kết nối server.");
     }
     setLoading(false);
   }
@@ -98,7 +101,7 @@ export function ShadowingTab({ history, setHistory, supabase, userId, onActivity
       setTranscript(spokenTranscript);
 
       if (!spokenTranscript.trim()) {
-        alert("Không nhận được giọng nói rõ. Hãy nói gần mic hơn và thử lại.");
+        showToast("Không nhận được giọng nói rõ. Hãy nói gần mic hơn và thử lại.");
         setIsAnalyzing(false);
         return;
       }

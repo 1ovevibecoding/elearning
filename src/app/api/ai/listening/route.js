@@ -1,14 +1,9 @@
-import { auth } from "@clerk/nextjs/server";
-import { askAI, handleAIError } from "@/lib/ai";
+import { askAI } from "@/lib/ai";
+import { withAiGuard } from "@/lib/aiGuard";
 
 export async function POST(request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
-    const { action, topic, questions, userAnswers } = await request.json();
+  return withAiGuard(request, async (body, userId) => {
+    const { action, topic, questions, userAnswers } = body;
 
     if (action === "generate") {
       const system =
@@ -58,7 +53,7 @@ Return JSON in this EXACT format:
   ]
 }`;
 
-      const result = await askAI(system, user);
+      const result = await askAI(system, user, { userId });
       if (!result) return Response.json({ error: "AI unavailable" }, { status: 503 });
 
       // Flatten all questions for grading compatibility
@@ -71,7 +66,6 @@ Return JSON in this EXACT format:
       const feedbackList = questions.map((q, idx) => {
         const uAns = (userAnswers[idx] || "").trim().toLowerCase();
         const correct = (q.answer || "").trim().toLowerCase();
-        // For short answer: accept if first keyword matches
         const isCorrect = q.type === "short_answer"
           ? correct.split(" ").some(word => word.length > 3 && uAns.includes(word))
           : uAns === correct;
@@ -89,8 +83,5 @@ Return JSON in this EXACT format:
     }
 
     return Response.json({ error: "Invalid action" }, { status: 400 });
-  } catch (e) {
-    console.error("AI error:", e);
-    return handleAIError(e);
-  }
+  });
 }

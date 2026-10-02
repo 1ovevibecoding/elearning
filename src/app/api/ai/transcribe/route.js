@@ -8,20 +8,20 @@ const GROQ_WHISPER_URL =
 export async function POST(request) {
   const { userId } = await auth();
   if (!userId) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    return Response.json({ error: "Chưa đăng nhập" }, { status: 401 });
   }
 
   try {
     const allowed = await checkRateLimit(userId);
     if (!allowed) {
-      return Response.json({ error: "Rate limit exceeded" }, { status: 429 });
+      return Response.json({ error: "Vượt quá giới hạn (tối đa 30 yêu cầu/giờ). Vui lòng thử lại sau." }, { status: 429 });
     }
 
     const formData = await request.formData();
     const audioFile = formData.get("audio");
 
     if (!audioFile) {
-      return Response.json({ error: "No audio file provided" }, { status: 400 });
+      return Response.json({ error: "Không tìm thấy tệp âm thanh" }, { status: 400 });
     }
 
     validateAudioSize(audioFile);
@@ -46,7 +46,7 @@ export async function POST(request) {
       const errText = await res.text();
       console.error("Groq Whisper error:", errText);
       return Response.json(
-        { error: "Whisper transcription failed", detail: errText },
+        { error: "Phiên âm thất bại", detail: errText },
         { status: 502 }
       );
     }
@@ -62,8 +62,8 @@ export async function POST(request) {
     });
   } catch (e) {
     console.error("Transcribe error:", e);
-    if (e.message === "Audio file too large") return Response.json({ error: e.message }, { status: 413 });
-    return Response.json({ error: "Internal error" }, { status: 500 });
+    if (e.message === "Audio file too large") return Response.json({ error: "Tệp âm thanh quá lớn (tối đa 25MB)." }, { status: 413 });
+    if (e.message === "Input too long") return Response.json({ error: "Dữ liệu đầu vào quá dài." }, { status: 413 });
+    return Response.json({ error: "Lỗi hệ thống nội bộ" }, { status: 500 });
   }
 }
-

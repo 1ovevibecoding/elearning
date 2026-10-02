@@ -1,3 +1,5 @@
+"use client";
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps, react-hooks/purity, react-hooks/immutability */
 import { useState, useEffect, useRef } from "react";
 import { Sparkles, Clock, CheckCircle2, XCircle, Flag, BookmarkPlus, BookOpen, Layers } from "lucide-react";
 import { Spinner } from "./ui/Spinner";

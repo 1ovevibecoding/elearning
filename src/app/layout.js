@@ -50,7 +50,7 @@ export default function RootLayout({ children }) {
       }}
     >
       <html lang="vi" className={`${inter.variable} ${ibmPlexMono.variable} ${fraunces.variable}`}>
-        <body>{children}</body>
+        <body style={{ margin: 0 }}>{children}</body>
       </html>
     </ClerkProvider>
   );

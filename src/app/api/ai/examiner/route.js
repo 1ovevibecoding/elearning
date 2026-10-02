@@ -1,19 +1,9 @@
-import { auth } from "@clerk/nextjs/server";
-import { askAI, handleAIError } from "@/lib/ai";
+import { askAI } from "@/lib/ai";
+import { withAiGuard } from "@/lib/aiGuard";
 
-/**
- * AI Examiner — 2-way IELTS Speaking simulation
- * Receives: part, conversation history, latest candidate answer (transcript)
- * Returns: feedback on latest answer + next examiner question (or closing)
- */
 export async function POST(request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
-    const { action, part, conversation, candidateAnswer } = await request.json();
+  return withAiGuard(request, async (body, userId) => {
+    const { action, part, conversation, candidateAnswer } = body;
 
     // ── Start new session: generate opening question ──
     if (action === "start") {
@@ -21,7 +11,7 @@ export async function POST(request) {
         "You are a professional IELTS Speaking examiner conducting a real IELTS Speaking test. Be formal but friendly. Ask one question at a time. Respond ONLY with valid JSON.";
       const user = `Start an IELTS Speaking ${part || "Part 1"} test. Greet the candidate briefly (1 sentence) and ask your first question. Keep the greeting very short and natural, like a real examiner would. Return JSON: {"examiner_text": "<greeting + first question>", "is_final": false}`;
 
-      const result = await askAI(system, user);
+      const result = await askAI(system, user, { userId });
       if (!result) return Response.json({ error: "AI unavailable" }, { status: 503 });
       return Response.json(result);
     }
@@ -67,14 +57,11 @@ Return JSON:
   }` : ""}
 }`;
 
-      const result = await askAI(system, user);
+      const result = await askAI(system, user, { userId });
       if (!result) return Response.json({ error: "AI unavailable" }, { status: 503 });
       return Response.json(result);
     }
 
     return Response.json({ error: "Invalid action" }, { status: 400 });
-  } catch (e) {
-    console.error("AI error:", e);
-    return handleAIError(e);
-  }
+  });
 }

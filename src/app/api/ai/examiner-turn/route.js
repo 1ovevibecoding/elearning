@@ -1,14 +1,9 @@
-import { auth } from "@clerk/nextjs/server";
-import { askAI, handleAIError } from "@/lib/ai";
+import { askAI } from "@/lib/ai";
+import { withAiGuard } from "@/lib/aiGuard";
 
 export async function POST(request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
-    const { part, topic, conversationHistory, latestCandidateTranscript, currentTurn } = await request.json();
+  return withAiGuard(request, async (body, userId) => {
+    const { part, topic, conversationHistory, latestCandidateTranscript, currentTurn } = body;
 
     const system =
       "You are a strict, certified Cambridge/IDP IELTS Speaking Examiner conducting a real-time spoken test. Maintain a professional, authentic examiner persona. Keep examiner questions concise and natural for audio playback (1-2 sentences max). Respond ONLY with valid JSON.";
@@ -38,14 +33,11 @@ Return JSON:
   }
 }`;
 
-    const result = await askAI(system, userPrompt);
+    const result = await askAI(system, userPrompt, { userId });
     if (!result) {
       return Response.json({ error: "AI unavailable" }, { status: 503 });
     }
 
     return Response.json(result);
-  } catch (e) {
-    console.error("AI error:", e);
-    return handleAIError(e);
-  }
+  });
 }

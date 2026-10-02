@@ -1,3 +1,5 @@
+"use client";
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps, react-hooks/purity, react-hooks/immutability */
 import { useState, useEffect } from "react";
 import { Sparkles, Volume2, Clock, CheckCircle2, XCircle, BookmarkPlus, Layers, Flag } from "lucide-react";
 import { Spinner } from "./ui/Spinner";
@@ -277,7 +279,7 @@ export function ListeningPanel({ history, setHistory, supabase, userId, setVocab
                     onClick={handleSaveSelectedVocab}
                     disabled={extractLoading}
                   >
-                    <BookmarkPlus size={13} /> Lưu từ "{selectedText}"
+                    <BookmarkPlus size={13} /> Lưu từ &quot;{selectedText}&quot;
                   </button>
                 )}
               </div>

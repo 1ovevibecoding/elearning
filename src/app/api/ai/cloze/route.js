@@ -1,21 +1,16 @@
-import { auth } from "@clerk/nextjs/server";
-import { askAI, handleAIError } from "@/lib/ai";
+import { askAI } from "@/lib/ai";
+import { withAiGuard } from "@/lib/aiGuard";
 
 export async function POST(request) {
-  const { userId } = await auth();
-  if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
-
-  try {
-    const { word, definition_en, example_en } = await request.json();
-    if (!word) return Response.json({ error: "No word" }, { status: 400 });
+  return withAiGuard(request, async (body, userId) => {
+    const { word, definition_en, example_en } = body;
+    if (!word) return Response.json({ error: "Word is required" }, { status: 400 });
 
     const system =
       "You are an IELTS vocabulary trainer creating cloze test exercises. Generate exercises in English with Vietnamese explanation. Respond ONLY with valid JSON.";
 
     const user = `Word: "${word}". Definition: "${definition_en}". Example: "${example_en}".
-
 Create 2 different cloze (fill-in-the-blank) sentences that test this word in new contexts the learner hasn't seen before. The blank should be shown as "______".
-
 Return JSON:
 {
   "exercises": [
@@ -32,11 +27,8 @@ Return JSON:
   ]
 }`;
 
-    const result = await askAI(system, user);
+    const result = await askAI(system, user, { userId });
     if (!result) return Response.json({ error: "AI unavailable" }, { status: 503 });
     return Response.json(result);
-  } catch (e) {
-    console.error("AI error:", e);
-    return handleAIError(e);
-  }
+  });
 }

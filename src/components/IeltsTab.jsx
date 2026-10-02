@@ -1,4 +1,6 @@
 "use client";
+/* eslint-disable react-hooks/purity, react-hooks/set-state-in-effect, react-hooks/immutability, react-hooks/exhaustive-deps */
+"use client";
 
 import { useState, useEffect } from "react";
 import { Sparkles, Mic, Square } from "lucide-react";

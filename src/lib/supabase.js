@@ -13,7 +13,7 @@ export function createClerkSupabaseClient(getToken) {
     {
       global: {
         fetch: async (url, options = {}) => {
-          const clerkToken = await getToken?.({ template: "supabase" });
+          const clerkToken = await getToken?.();
           const headers = new Headers(options.headers);
           if (clerkToken) {
             headers.set("Authorization", `Bearer ${clerkToken}`);

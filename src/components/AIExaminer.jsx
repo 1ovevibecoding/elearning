@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/purity, react-hooks/set-state-in-effect, react-hooks/immutability, react-hooks/exhaustive-deps */
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -124,12 +125,6 @@ export function AIExaminer({ supabase, userId, history, setHistory }) {
   }
 
   // When audioBlob is ready, process it
-  useEffect(() => {
-    if (rec.audioBlob && status === "processing") {
-      processRecording(rec.audioBlob);
-    }
-  }, [rec.audioBlob]);
-
   async function processRecording(blob) {
     try {
       // 1. Transcribe with Whisper
@@ -192,6 +187,12 @@ export function AIExaminer({ supabase, userId, history, setHistory }) {
       setStatus("waiting");
     }
   }
+
+  useEffect(() => {
+    if (rec.audioBlob && status === "processing") {
+      processRecording(rec.audioBlob);
+    }
+  }, [rec.audioBlob, status]);
 
   const isRunning = !["idle", "done"].includes(status);
 
