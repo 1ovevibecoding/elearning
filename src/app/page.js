@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useUser } from "@clerk/nextjs";
-import { createClient } from "@supabase/supabase-js";
+import { useUser, useAuth } from "@clerk/nextjs";
+import { createClerkSupabaseClient } from "@/lib/supabase";
 import { Header } from "@/components/ui/Header";
 import { TabNav } from "@/components/ui/TabNav";
 import { Dashboard } from "@/components/Dashboard";
@@ -52,12 +52,8 @@ export default function Home() {
   }
 
   // Create Supabase client
-  const supabase = useMemo(() => {
-    return createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-  }, []);
+  const { getToken } = useAuth();
+  const supabase = useMemo(() => createClerkSupabaseClient(getToken), [getToken]);
 
   // Fetch all user data
   useEffect(() => {
