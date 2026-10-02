@@ -2,6 +2,8 @@
 
 import { useMemo } from "react";
 import { Flame, Target, BookOpen, Mic, PenLine, BookOpenCheck, Headphones, Sparkles } from "lucide-react";
+import { LEAGUES, getLeague } from "@/lib/utils";
+
 
 const MONTHS = ["Th1","Th2","Th3","Th4","Th5","Th6","Th7","Th8","Th9","Th10","Th11","Th12"];
 const DAYS   = ["CN","T2","T3","T4","T5","T6","T7"];
@@ -19,10 +21,10 @@ function getIntensity(activity) {
 
 const INTENSITY_COLORS = [
   "var(--ink-3)",
-  "rgba(62,133,119,0.2)",
-  "rgba(62,133,119,0.4)",
-  "rgba(62,133,119,0.65)",
-  "rgba(62,133,119,0.85)",
+  "rgba(218, 119, 86,0.2)",
+  "rgba(218, 119, 86,0.4)",
+  "rgba(218, 119, 86,0.65)",
+  "rgba(218, 119, 86,0.85)",
   "var(--jade)",
 ];
 
@@ -201,6 +203,97 @@ export function DailyMissions({ todayActivity, stats, setTab }) {
   );
 }
 
+/* ─── League & XP Progress Card ─── */
+export function LeagueProgress({ stats }) {
+  const xp = stats?.total_xp || 0;
+  const currentLeague = getLeague(xp);
+  const currentIdx = LEAGUES.findIndex((l) => l.name === currentLeague.name);
+  const nextLeague = currentIdx < LEAGUES.length - 1 ? LEAGUES[currentIdx + 1] : null;
+
+  const prevXp = currentLeague.minXp;
+  const targetXp = nextLeague ? nextLeague.minXp : prevXp;
+  const progressPercent = nextLeague
+    ? Math.min(100, Math.max(0, ((xp - prevXp) / (targetXp - prevXp)) * 100))
+    : 100;
+
+  return (
+    <div
+      className="card"
+      style={{
+        background: "linear-gradient(135deg, rgba(26, 36, 33, 0.9) 0%, rgba(18, 24, 27, 0.95) 100%)",
+        border: `1px solid ${currentLeague.color}40`,
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: "50%",
+              background: `radial-gradient(circle, ${currentLeague.color}30 0%, transparent 70%)`,
+              border: `2px solid ${currentLeague.color}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 26,
+              boxShadow: `0 0 16px ${currentLeague.color}40`,
+            }}
+          >
+            {currentLeague.icon}
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: currentLeague.color }}>
+                {currentLeague.name}
+              </span>
+              <span className="chip" style={{ fontSize: 11, padding: "2px 8px" }}>
+                Hạng học viên
+              </span>
+            </div>
+            <div style={{ fontSize: 13, color: "var(--text-soft)", marginTop: 2 }}>
+              Tổng tích lũy: <strong style={{ color: "var(--amber)", fontFamily: "IBM Plex Mono" }}>{xp} XP</strong>
+            </div>
+          </div>
+        </div>
+
+        {nextLeague ? (
+          <div style={{ textAlign: "right", minWidth: 160 }}>
+            <div style={{ fontSize: 12, color: "var(--text-soft)" }}>
+              Còn <strong style={{ color: "var(--jade-light)" }}>{nextLeague.minXp - xp} XP</strong> lên {nextLeague.name}
+            </div>
+            <div
+              style={{
+                width: 180,
+                height: 8,
+                background: "var(--ink-3)",
+                borderRadius: 4,
+                overflow: "hidden",
+                marginTop: 6,
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${progressPercent}%`,
+                  background: `linear-gradient(90deg, ${currentLeague.color}, var(--jade-light))`,
+                  transition: "width 0.4s ease",
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="chip chip-active" style={{ fontSize: 12, color: "var(--coral)" }}>
+            👑 Đã đạt thứ hạng cao nhất!
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Target Band Planner ─── */
 export function TargetBandPlanner({ stats, onSave }) {
   const daysLeft = stats?.exam_date
@@ -208,7 +301,7 @@ export function TargetBandPlanner({ stats, onSave }) {
     : null;
 
   return (
-    <div className="card" style={{ borderColor: "rgba(214,169,75,0.3)" }}>
+    <div className="card" style={{ borderColor: "rgba(201, 163, 90,0.3)" }}>
       <h3 className="section-title" style={{ color: "var(--amber)" }}>
         🎯 Mục tiêu IELTS
       </h3>
@@ -235,7 +328,7 @@ export function TargetBandPlanner({ stats, onSave }) {
             onChange={(e) => onSave({ target_band: parseFloat(e.target.value) })}
             style={{ width: "100%", marginBottom: 8 }}
           >
-            {[5.0,5.5,6.0,6.5,7.0,7.5,8.0,8.5,9.0].map((b) => (
+            {[5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0].map((b) => (
               <option key={b} value={b}>Band {b}</option>
             ))}
           </select>
@@ -252,3 +345,5 @@ export function TargetBandPlanner({ stats, onSave }) {
     </div>
   );
 }
+
+

@@ -16,9 +16,16 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata = {
-  title: "PREP IELTS — Cày IELTS chill chill, aim 8.0 dễ ợt!",
+  title: "PREP IELTS — Elevate Your Band Score",
   description: "AI-powered IELTS preparation",
   icons: { icon: "/favicon.ico" },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#1E1C1A",
 };
 
 export default function RootLayout({ children }) {
@@ -26,11 +33,11 @@ export default function RootLayout({ children }) {
     <ClerkProvider
       appearance={{
         variables: {
-          colorPrimary: "#3E8577",
-          colorBackground: "#1c212d",
-          colorText: "#EDE7D9",
-          colorInputBackground: "#14171f",
-          colorInputText: "#EDE7D9",
+          colorPrimary: "#DA7756",
+          colorBackground: "#262422",
+          colorText: "#EDE8E0",
+          colorInputBackground: "#1E1C1A",
+          colorInputText: "#EDE8E0",
           borderRadius: "10px",
         },
       }}

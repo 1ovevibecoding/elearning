@@ -260,3 +260,88 @@ export function getLeague(xp = 0) {
   return LEAGUES[0];
 }
 
+/**
+ * Record a learning activity: updates daily_activities, XP and streak in user_stats.
+ * @param {object} supabase  Supabase client instance
+ * @param {string} userId    Clerk user ID
+ * @param {'reading'|'listening'|'writing'|'speaking'|'shadowing'|'vocab'} type  Activity type
+ * @param {number} xpOverride  Optional custom XP amount (defaults per type)
+ */
+export async function recordActivity(supabase, userId, type, xpOverride) {
+  const XP_MAP = {
+    reading: 38, listening: 25, writing: 35, speaking: 30, shadowing: 20, vocab: 5,
+  };
+  const xpEarned = xpOverride ?? (XP_MAP[type] || 10);
+  const today = new Date().toISOString().slice(0, 10);
+
+  // --- 1. Upsert daily_activities ---
+  const activityUpdate = {
+    user_id: userId,
+    activity_date: today,
+    total_xp: xpEarned, // will be incremented via RPC ideally; using upsert merge
+  };
+  if (type === "reading")   activityUpdate.reading_done = true;
+  if (type === "listening") activityUpdate.listening_done = true;
+  if (type === "writing")   activityUpdate.writing_done = true;
+  if (type === "speaking")  activityUpdate.speaking_done = true;
+  if (type === "shadowing") activityUpdate.shadowing_done = true;
+  if (type === "vocab")     activityUpdate.words_studied = 1; // incremented below
+
+  try {
+    // Fetch existing today's activity
+    const { data: existing } = await supabase
+      .from("daily_activities")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("activity_date", today)
+      .single();
+
+    if (existing) {
+      const mergedUpdate = { ...activityUpdate };
+      if (type === "vocab") mergedUpdate.words_studied = (existing.words_studied || 0) + 1;
+      mergedUpdate.total_xp = (existing.total_xp || 0) + xpEarned;
+      await supabase.from("daily_activities").update(mergedUpdate).eq("id", existing.id);
+    } else {
+      if (type === "vocab") activityUpdate.words_studied = 1;
+      await supabase.from("daily_activities").insert(activityUpdate);
+    }
+
+    // --- 2. Update user_stats: XP, streak ---
+    const { data: stats } = await supabase
+      .from("user_stats")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const lastStudy = stats?.last_study_date;
+    let currentStreak = stats?.current_streak || 0;
+    let longestStreak = stats?.longest_streak || 0;
+
+    if (lastStudy === today) {
+      // Already studied today — only add XP
+    } else if (lastStudy === yesterday) {
+      // Consecutive day
+      currentStreak += 1;
+      if (currentStreak > longestStreak) longestStreak = currentStreak;
+    } else {
+      // Streak broken or first time
+      currentStreak = 1;
+      if (currentStreak > longestStreak) longestStreak = currentStreak;
+    }
+
+    const totalXp = (stats?.total_xp || 0) + xpEarned;
+
+    await supabase.from("user_stats").upsert({
+      user_id: userId,
+      current_streak: currentStreak,
+      longest_streak: longestStreak,
+      last_study_date: today,
+      total_xp: totalXp,
+    });
+  } catch (e) {
+    console.error("recordActivity error:", e);
+  }
+}
+
+

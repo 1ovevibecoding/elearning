@@ -1,21 +1,32 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
-/* ─── Design Tokens ─── */
+/* ─── Design Tokens (Claude CLI dark warm) ─── */
 :root {
-  --ink: #14171f;
-  --ink-2: #1c212d;
-  --ink-3: #242a38;
-  --paper: #EDE7D9;
-  --jade: #3E8577;
-  --jade-light: #5FAE9D;
-  --jade-glow: rgba(62, 133, 119, 0.15);
-  --amber: #D6A94B;
-  --amber-glow: rgba(214, 169, 75, 0.15);
-  --coral: #C1554A;
-  --text-soft: #9AA3B0;
-  --border-soft: rgba(237, 231, 217, 0.14);
-  --border-medium: rgba(237, 231, 217, 0.22);
-  --glass: rgba(28, 33, 45, 0.75);
+  /* Warm charcoal neutrals */
+  --ink: #1E1C1A;
+  --ink-2: #262422;
+  --ink-3: #302D2A;
+  --paper: #EDE8E0;
+  --text-bright: #F5F1E8;
+  --text-soft: #9A9388;
+
+  /* Primary accent — Claude terracotta (kept token name --jade for compat) */
+  --jade: #DA7756;
+  --jade-light: #E8907A;
+  --jade-glow: rgba(218, 119, 86, 0.15);
+
+  /* Secondary warm gold */
+  --amber: #C9A35A;
+  --amber-glow: rgba(201, 163, 90, 0.15);
+
+  /* Danger — soft brick, slightly cooler than accent */
+  --coral: #B85C4E;
+
+  /* Warm-tinted borders & glass */
+  --border-soft: rgba(237, 232, 224, 0.14);
+  --border-medium: rgba(237, 232, 224, 0.22);
+  --glass: rgba(38, 36, 34, 0.75);
+
   --radius: 10px;
   --radius-lg: 14px;
   --transition: 0.2s ease;
@@ -455,7 +466,7 @@ body {
 }
 
 .badge-active {
-  background: rgba(214, 169, 75, 0.18);
+  background: rgba(201, 163, 90, 0.18);
   color: var(--amber);
 }
 
@@ -465,7 +476,7 @@ body {
 }
 
 .badge-due {
-  background: rgba(193, 85, 74, 0.18);
+  background: rgba(184, 92, 78, 0.18);
   color: var(--coral);
 }
 
@@ -635,7 +646,13 @@ body {
 }
 
 /* ─── Responsive ─── */
+
+/* ── Tablet: 768px ── */
 @media (max-width: 768px) {
+  .app-shell {
+    padding: 16px;
+  }
+
   .app-title {
     font-size: 24px;
   }
@@ -651,32 +668,212 @@ body {
   .vocab-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Tab nav: horizontal scroll instead of wrap */
+  .tab-nav {
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 0;
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+    gap: 2px;
+  }
+  .tab-nav::-webkit-scrollbar {
+    display: none;
+  }
+  .tab-btn {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  /* Reading/Diagnostic split: single column */
+  .reading-split {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Modal: full height on mobile */
+  .reading-modal {
+    max-height: 96vh;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  /* Examiner chat: taller on tablet */
+  .examiner-chat {
+    max-height: 400px;
+  }
 }
 
+/* ── Mobile: 480px ── */
 @media (max-width: 480px) {
   .app-shell {
-    padding: 14px;
+    padding: 12px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .app-header {
+    margin-bottom: 12px;
+    gap: 8px;
   }
 
   .app-title {
-    font-size: 22px;
+    font-size: 20px;
   }
 
+  .app-subtitle {
+    font-size: 11px;
+  }
+
+  /* Tab nav more compact on phone */
+  .tab-btn {
+    padding: 7px 10px;
+    font-size: 11.5px;
+    gap: 3px;
+  }
+  .tab-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Cards: tighter padding */
+  .card {
+    padding: 12px 14px;
+  }
+
+  /* Stats: 2-column on small screens */
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .stat-value {
+    font-size: 18px;
+  }
+
+  /* Forms: stack vertically */
   .form-row {
     flex-direction: column;
+    align-items: stretch;
   }
-
   .input-field {
     min-width: 100%;
   }
 
+  /* Quick action buttons: full width */
   .quick-row {
     flex-direction: column;
   }
-
   .quick-row .btn-primary {
     width: 100%;
     justify-content: center;
+  }
+
+  /* Bigger tap targets for buttons */
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger {
+    padding: 11px 16px;
+    font-size: 13px;
+  }
+
+  /* Section title tighter */
+  .section-title {
+    font-size: 15px;
+  }
+
+  /* Shadowing controls: wrap nicely */
+  .shadow-controls {
+    gap: 6px;
+  }
+
+  /* Chat bubbles: full width on mobile */
+  .chat-bubble {
+    max-width: 94%;
+  }
+  .examiner-chat {
+    max-height: 340px;
+  }
+
+  /* History item: wrap on small */
+  .history-item {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Floating reading bar: full width with safe area */
+  .floating-reading-bar {
+    left: 12px;
+    right: 12px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    transform: none;
+    border-radius: 16px;
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  .btn-generate-reading {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Reading modal: full-screen sheet */
+  .reading-modal {
+    max-height: 94vh;
+    border-radius: 16px 16px 0 0;
+  }
+  .reading-modal-header {
+    padding: 16px 16px 12px;
+  }
+  .reading-modal-body {
+    padding: 14px 16px 20px;
+  }
+
+  /* Vocab grid: 1 column */
+  .vocab-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  /* Chip filters: scroll horizontally */
+  .filter-row,
+  .sub-tab-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .filter-row::-webkit-scrollbar,
+  .sub-tab-row::-webkit-scrollbar {
+    display: none;
+  }
+  .chip {
+    flex-shrink: 0;
+  }
+
+  /* Word map chips: smaller on mobile */
+  .word-chip {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+
+  /* Score grid */
+  .scorecard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Diagnostic: single column */
+  .diagnostic-container .reading-split {
+    grid-template-columns: 1fr !important;
   }
 }
 
@@ -769,7 +966,7 @@ body {
 
 .chat-bubble.candidate {
   background: var(--jade-glow);
-  border: 1px solid rgba(62, 133, 119, 0.3);
+  border: 1px solid rgba(218, 119, 86, 0.3);
   align-self: flex-end;
   border-bottom-right-radius: 2px;
 }
@@ -818,7 +1015,7 @@ body {
   padding: 9px 14px;
   margin-top: 10px;
   background: linear-gradient(90deg, var(--jade-glow), var(--amber-glow));
-  border: 1px solid rgba(95, 174, 157, 0.3);
+  border: 1px solid rgba(232, 144, 122, 0.3);
   border-radius: var(--radius);
   font-size: 12.5px;
   color: var(--jade-light);
@@ -836,8 +1033,8 @@ body {
 
 /* ─── Vocab card selected state ─── */
 .vocab-card-selected {
-  border-color: rgba(62, 133, 119, 0.5) !important;
-  box-shadow: 0 0 0 2px rgba(62, 133, 119, 0.18);
+  border-color: rgba(218, 119, 86, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(218, 119, 86, 0.18);
 }
 
 /* ─── Vocab card head layout update ─── */
@@ -923,7 +1120,7 @@ body {
   color: var(--amber);
   font-family: 'IBM Plex Mono', monospace;
   background: var(--amber-glow);
-  border: 1px solid rgba(214, 169, 75, 0.3);
+  border: 1px solid rgba(201, 163, 90, 0.3);
   padding: 1px 6px;
   border-radius: 4px;
   min-width: 30px;
@@ -1000,8 +1197,8 @@ body {
 }
 .day-due-badge {
   font-size: 11px;
-  background: rgba(193, 85, 74, 0.15);
-  border: 1px solid rgba(193, 85, 74, 0.35);
+  background: rgba(184, 92, 78, 0.15);
+  border: 1px solid rgba(184, 92, 78, 0.35);
   color: #e07070;
   padding: 1px 8px;
   border-radius: 20px;
@@ -1018,9 +1215,9 @@ body {
   gap: 10px;
   padding: 12px 18px;
   background: var(--ink-2);
-  border: 1px solid rgba(95, 174, 157, 0.4);
+  border: 1px solid rgba(232, 144, 122, 0.4);
   border-radius: 50px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(95,174,157,0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(232, 144, 122,0.1);
   backdrop-filter: blur(12px);
   z-index: 100;
   animation: slideUp 0.25s ease;
@@ -1111,7 +1308,7 @@ body {
 .reading-topic-badge {
   font-size: 11px;
   background: var(--amber-glow);
-  border: 1px solid rgba(214, 169, 75, 0.3);
+  border: 1px solid rgba(201, 163, 90, 0.3);
   color: var(--amber);
   padding: 2px 10px;
   border-radius: 20px;
@@ -1165,7 +1362,7 @@ body {
   font-size: 11.5px;
   font-weight: 600;
   background: var(--jade-glow);
-  border: 1px solid rgba(62, 133, 119, 0.35);
+  border: 1px solid rgba(218, 119, 86, 0.35);
   color: var(--jade-light);
   padding: 2px 10px;
   border-radius: 20px;
@@ -1186,7 +1383,7 @@ body {
   color: var(--paper);
 }
 mark.vocab-highlight {
-  background: rgba(214, 169, 75, 0.25);
+  background: rgba(201, 163, 90, 0.25);
   color: var(--amber);
   border-radius: 3px;
   padding: 0 2px;
@@ -1223,7 +1420,7 @@ mark.vocab-highlight {
   margin-top: 8px;
   padding: 8px 12px;
   background: var(--jade-glow);
-  border: 1px solid rgba(62, 133, 119, 0.25);
+  border: 1px solid rgba(218, 119, 86, 0.25);
   border-radius: 6px;
   font-size: 13px;
   color: var(--jade-light);
@@ -1298,8 +1495,8 @@ mark.vocab-highlight {
 }
 .btn-delete-word:hover {
   color: var(--coral);
-  border-color: rgba(193, 85, 74, 0.3);
-  background: rgba(193, 85, 74, 0.1);
+  border-color: rgba(184, 92, 78, 0.3);
+  background: rgba(184, 92, 78, 0.1);
 }
 .vocab-card.deleting {
   opacity: 0.4;
@@ -1312,8 +1509,8 @@ mark.vocab-highlight {
 .duplicate-warning-banner {
   margin-top: 10px;
   padding: 9px 14px;
-  background: rgba(214, 169, 75, 0.15);
-  border: 1px solid rgba(214, 169, 75, 0.35);
+  background: rgba(201, 163, 90, 0.15);
+  border: 1px solid rgba(201, 163, 90, 0.35);
   border-radius: var(--radius);
   color: var(--amber);
   font-size: 12.5px;
@@ -1322,12 +1519,12 @@ mark.vocab-highlight {
 }
 
 .chip-warn {
-  background: rgba(214, 169, 75, 0.15) !important;
-  border-color: rgba(214, 169, 75, 0.35) !important;
+  background: rgba(201, 163, 90, 0.15) !important;
+  border-color: rgba(201, 163, 90, 0.35) !important;
   color: var(--amber) !important;
 }
 .chip-warn:hover {
-  background: rgba(214, 169, 75, 0.25) !important;
+  background: rgba(201, 163, 90, 0.25) !important;
 }
 
 /* ─── IPA Phonetic Display ─── */
@@ -1359,11 +1556,74 @@ mark.vocab-highlight {
 }
 .btn-speak:hover {
   color: var(--jade-light);
-  border-color: rgba(95, 174, 157, 0.35);
+  border-color: rgba(232, 144, 122, 0.35);
   background: var(--jade-glow);
 }
 .btn-speak:active {
   transform: scale(0.9);
 }
+
+/* ─── IELTS Section Instruction Box ─── */
+.ielts-section-instruction {
+  padding: 10px 14px;
+  background: rgba(52, 120, 100, 0.12);
+  border-left: 3px solid var(--jade);
+  border-radius: 0 6px 6px 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--jade-light);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+/* ─── Diagnostic Test Custom Styling ─── */
+.diagnostic-container {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 860px) {
+  .diagnostic-container .reading-split {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ─── Touch Device Improvements ─── */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets for interactive elements */
+  .tab-btn {
+    min-height: 44px;
+  }
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger {
+    min-height: 44px;
+  }
+  .chip {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .btn-speak,
+  .btn-delete-word,
+  .btn-translate,
+  .btn-clear-sel {
+    min-width: 36px;
+    min-height: 36px;
+  }
+  /* Remove hover transforms on touch */
+  .stat-card:hover {
+    transform: none;
+  }
+  .btn-primary:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+
 
 

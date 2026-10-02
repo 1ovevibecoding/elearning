@@ -2,6 +2,7 @@
 
 import {
   LayoutDashboard,
+  Compass,
   BookOpen,
   Mic,
   PenLine,
@@ -12,6 +13,7 @@ import { MarkerUnderline } from "./MarkerUnderline";
 
 const tabs = [
   { key: "dashboard", label: "Tổng quan", icon: LayoutDashboard },
+  { key: "diagnostic", label: "Test Đầu Vào", icon: Compass, badge: "AI Test" },
   { key: "vocab", label: "Từ vựng", icon: BookOpen },
   { key: "shadowing", label: "Shadowing", icon: Mic },
   { key: "ielts", label: "Writing & Speaking", icon: PenLine },
@@ -30,9 +32,25 @@ export function TabNav({ tab, setTab }) {
         >
           <t.icon size={16} />
           <span>{t.label}</span>
-          {tab === t.key && <MarkerUnderline width={t.label.length * 8} />}
+          {t.badge && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                padding: "1px 6px",
+                borderRadius: 10,
+                background: "var(--jade)",
+                color: "#fff",
+                marginLeft: 4,
+              }}
+            >
+              {t.badge}
+            </span>
+          )}
+          {tab === t.key && <MarkerUnderline width={t.label.length * 8 + (t.badge ? 30 : 0)} />}
         </button>
       ))}
     </nav>
   );
 }
+

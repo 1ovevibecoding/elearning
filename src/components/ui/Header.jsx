@@ -15,7 +15,7 @@ export function Header() {
           </h1>
         </div>
         <p className="app-subtitle" style={{ marginTop: "4px" }}>
-
+          &quot;Work smart in silence, let your result make the noise.&quot;
         </p>
       </div>
       <UserButton

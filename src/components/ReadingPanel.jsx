@@ -4,7 +4,7 @@ import { Spinner } from "./ui/Spinner";
 import { EmptyState } from "./ui/EmptyState";
 import { fmtDate, rawToBand } from "@/lib/utils";
 
-export function ReadingPanel({ history, setHistory, supabase, userId, setVocabList }) {
+export function ReadingPanel({ history, setHistory, supabase, userId, setVocabList, onActivityDone }) {
   const [topic, setTopic] = useState("");
   const [examMode, setExamMode] = useState("practice"); // 'mock_60' | 'practice' | 'untimed'
   const [testData, setTestData] = useState(null);
@@ -21,6 +21,46 @@ export function ReadingPanel({ history, setHistory, supabase, userId, setVocabLi
   const [extractLoading, setExtractLoading] = useState(false);
   const [vocabToast, setVocabToast] = useState(null);
   const passageRef = useRef(null);
+
+  // Restore ongoing test session from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ielts_reading_active_session");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.testData && !parsed?.gradedResult) {
+          setTestData(parsed.testData);
+          setUserAnswers(parsed.userAnswers || {});
+          setFlagged(parsed.flagged || {});
+          setNotes(parsed.notes || "");
+          setTimeLeft(parsed.timeLeft || 1200);
+          setExamMode(parsed.examMode || "practice");
+          if (parsed.examMode !== "untimed") setIsTimerRunning(true);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to restore reading session", e);
+    }
+  }, []);
+
+  // Auto-save active test session to localStorage
+  useEffect(() => {
+    if (testData && !gradedResult) {
+      try {
+        localStorage.setItem(
+          "ielts_reading_active_session",
+          JSON.stringify({
+            testData,
+            userAnswers,
+            flagged,
+            notes,
+            timeLeft,
+            examMode,
+          })
+        );
+      } catch (e) {}
+    }
+  }, [testData, userAnswers, flagged, notes, timeLeft, examMode, gradedResult]);
 
   useEffect(() => {
     let timer;
@@ -40,6 +80,10 @@ export function ReadingPanel({ history, setHistory, supabase, userId, setVocabLi
   };
 
   async function handleGenerateTest() {
+    try {
+      localStorage.removeItem("ielts_reading_active_session");
+    } catch (e) {}
+
     setGenLoading(true);
     setGradedResult(null);
     setUserAnswers({});
@@ -51,6 +95,7 @@ export function ReadingPanel({ history, setHistory, supabase, userId, setVocabLi
     if (examMode === "mock_60") time = 3600;
     else if (examMode === "untimed") time = 99999;
     setTimeLeft(time);
+
 
     try {
       const res = await fetch("/api/ai/reading", {
@@ -129,7 +174,7 @@ export function ReadingPanel({ history, setHistory, supabase, userId, setVocabLi
     if (!selection.rangeCount || selection.isCollapsed) return;
     const range = selection.getRangeAt(0);
     const span = document.createElement("mark");
-    span.style.backgroundColor = "rgba(214, 169, 75, 0.4)";
+    span.style.backgroundColor = "rgba(201, 163, 90, 0.4)";
     span.style.color = "inherit";
     span.style.borderRadius = "3px";
     span.style.padding = "1px 3px";
@@ -181,6 +226,11 @@ export function ReadingPanel({ history, setHistory, supabase, userId, setVocabLi
           setHistory((prev) => [{ ...inserted, band }, ...prev]);
         }
       }
+      // Fire gamification
+      if (onActivityDone) onActivityDone("reading");
+      try {
+        localStorage.removeItem("ielts_reading_active_session");
+      } catch (e) {}
     } catch (e) {
       console.error(e);
     }
@@ -309,87 +359,109 @@ export function ReadingPanel({ history, setHistory, supabase, userId, setVocabLi
               </div>
             </div>
 
-            {/* Question Column */}
+            {/* Question Column — section-aware rendering */}
             <div className="card" style={{ maxHeight: "700px", overflowY: "auto" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
                 <h3 className="section-title" style={{ margin: 0 }}>Questions ({testData.questions.length})</h3>
-                <span className="small-note">Chọn đáp án đúng nhất</span>
+                <span className="small-note">Câu 1-13 &mdash; 3 dạng câu hỏi IELTS</span>
               </div>
 
-              {testData.questions.map((q, idx) => (
-                <div 
-                  key={q.id} 
-                  id={`q_block_${q.id}`}
-                  style={{ 
-                    marginBottom: "16px", 
-                    padding: "12px", 
-                    borderRadius: "8px",
-                    background: flagged[q.id] ? "rgba(214, 169, 75, 0.08)" : "var(--ink-2)",
-                    border: "1px solid var(--border-soft)" 
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <p style={{ fontWeight: "600", fontSize: "13.5px", margin: 0 }}>
-                      <span style={{ color: "var(--amber)", marginRight: "6px" }}>Q{idx + 1}.</span> {q.question}
-                    </p>
-                    <button
-                      onClick={() => setFlagged((prev) => ({ ...prev, [q.id]: !prev[q.id] }))}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: flagged[q.id] ? "var(--amber)" : "var(--text-soft)", padding: "2px" }}
-                      title="Gắn cờ xem lại"
-                    >
-                      <Flag size={14} />
-                    </button>
+              {(testData.sections || []).map((section, si) => (
+                <div key={si} style={{ marginBottom: 24 }}>
+                  <div className="ielts-section-instruction">
+                    {section.instruction}
                   </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
-                    {q.options.map((opt) => (
-                      <label 
-                        key={opt} 
-                        style={{ 
-                          display: "flex", 
-                          alignItems: "center", 
-                          gap: "8px", 
-                          fontSize: "13px", 
-                          cursor: "pointer",
-                          padding: "6px 10px",
-                          borderRadius: "6px",
-                          background: userAnswers[q.id] === opt ? "var(--ink-3)" : "transparent",
-                          border: userAnswers[q.id] === opt ? "1px solid var(--amber)" : "1px solid transparent"
+                  {(section.questions || []).map((q, idx) => {
+                    const globalIdx = testData.questions.findIndex(x => x.id === q.id);
+                    return (
+                      <div
+                        key={q.id}
+                        id={`q_block_${q.id}`}
+                        style={{
+                          marginBottom: "12px",
+                          padding: "12px",
+                          borderRadius: "8px",
+                          background: flagged[q.id] ? "rgba(201, 163, 90, 0.08)" : "var(--ink-2)",
+                          border: "1px solid var(--border-soft)"
                         }}
                       >
-                        <input
-                          type="radio"
-                          name={`q_${q.id}`}
-                          value={opt}
-                          checked={userAnswers[q.id] === opt}
-                          onChange={() => setUserAnswers((prev) => ({ ...prev, [q.id]: opt }))}
-                          disabled={!!gradedResult}
-                        />
-                        {opt}
-                      </label>
-                    ))}
-                  </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <p style={{ fontWeight: "600", fontSize: "13.5px", margin: 0 }}>
+                            <span style={{ color: "var(--amber)", marginRight: "6px" }}>{q.id}.</span> {q.question}
+                          </p>
+                          <button
+                            onClick={() => setFlagged((prev) => ({ ...prev, [q.id]: !prev[q.id] }))}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: flagged[q.id] ? "var(--amber)" : "var(--text-soft)", padding: "2px" }}
+                            title="Gắn cờ xem lại"
+                          >
+                            <Flag size={14} />
+                          </button>
+                        </div>
 
-                  {gradedResult && (
-                    <div className="ai-feedback" style={{ marginTop: "10px", padding: "8px 12px" }}>
-                      {gradedResult.details[idx]?.isCorrect ? (
-                        <p style={{ color: "var(--jade-light)", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", margin: 0 }}>
-                          <CheckCircle2 size={14} /> Chính xác!
-                        </p>
-                      ) : (
-                        <p style={{ color: "var(--coral)", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", margin: 0 }}>
-                          <XCircle size={14} /> Đáp án đúng: {q.answer}
-                        </p>
-                      )}
-                      <p style={{ fontSize: "12px", marginTop: "4px", color: "var(--text-soft)" }}>{q.explanation}</p>
-                    </div>
-                  )}
+                        {/* MCQ / T-F-NG options */}
+                        {q.options && q.options.length > 0 && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
+                            {q.options.map((opt) => (
+                              <label
+                                key={opt}
+                                style={{
+                                  display: "flex", alignItems: "center", gap: "8px",
+                                  fontSize: "13px", cursor: "pointer",
+                                  padding: "6px 10px", borderRadius: "6px",
+                                  background: userAnswers[q.id] === opt ? "var(--ink-3)" : "transparent",
+                                  border: userAnswers[q.id] === opt ? "1px solid var(--amber)" : "1px solid transparent"
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`q_${q.id}`}
+                                  value={opt}
+                                  checked={userAnswers[q.id] === opt}
+                                  onChange={() => setUserAnswers((prev) => ({ ...prev, [q.id]: opt }))}
+                                  disabled={!!gradedResult}
+                                />
+                                {opt}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Short Answer / Gap Fill */}
+                        {(!q.options || q.options.length === 0) && (
+                          <input
+                            type="text"
+                            className="input-field"
+                            style={{ marginTop: 8, fontSize: 13 }}
+                            placeholder="Điền câu trả lời (tối đa 2 từ)..."
+                            value={userAnswers[q.id] || ""}
+                            onChange={(e) => setUserAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                            disabled={!!gradedResult}
+                          />
+                        )}
+
+                        {gradedResult && (
+                          <div className="ai-feedback" style={{ marginTop: "10px", padding: "8px 12px" }}>
+                            {gradedResult.details[globalIdx]?.isCorrect ? (
+                              <p style={{ color: "var(--jade-light)", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", margin: 0 }}>
+                                <CheckCircle2 size={14} /> Chính xác!
+                              </p>
+                            ) : (
+                              <p style={{ color: "var(--coral)", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", margin: 0 }}>
+                                <XCircle size={14} /> Đáp án đúng: <strong>{q.answer}</strong>
+                              </p>
+                            )}
+                            <p style={{ fontSize: "12px", marginTop: "4px", color: "var(--text-soft)" }}>{q.explanation}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
 
               {!gradedResult ? (
                 <button className="btn-primary" onClick={handleGrade} style={{ width: "100%", justifyContent: "center", padding: "12px" }}>
-                  <CheckCircle2 size={16} /> Nộp bài & Xem Band điểm IELTS
+                  <CheckCircle2 size={16} /> Nộp bài &amp; Xem Band điểm IELTS
                 </button>
               ) : (
                 <div style={{ textAlign: "center", padding: "16px", background: "var(--ink)", borderRadius: "8px", border: "1px solid var(--amber)" }}>
@@ -402,9 +474,11 @@ export function ReadingPanel({ history, setHistory, supabase, userId, setVocabLi
                 </div>
               )}
             </div>
+
           </div>
         </>
       )}
+
 
       {/* History */}
       <div className="card" style={{ marginTop: "16px" }}>

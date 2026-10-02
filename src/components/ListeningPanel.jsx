@@ -4,7 +4,7 @@ import { Spinner } from "./ui/Spinner";
 import { EmptyState } from "./ui/EmptyState";
 import { speak, fmtDate, rawToBand } from "@/lib/utils";
 
-export function ListeningPanel({ history, setHistory, supabase, userId, setVocabList }) {
+export function ListeningPanel({ history, setHistory, supabase, userId, setVocabList, onActivityDone }) {
   const [topic, setTopic] = useState("");
   const [testData, setTestData] = useState(null);
   const [userAnswers, setUserAnswers] = useState({});
@@ -20,6 +20,44 @@ export function ListeningPanel({ history, setHistory, supabase, userId, setVocab
   const [selectedText, setSelectedText] = useState("");
   const [extractLoading, setExtractLoading] = useState(false);
   const [vocabToast, setVocabToast] = useState(null);
+
+  // Restore ongoing test session from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ielts_listening_active_session");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.testData && !parsed?.gradedResult) {
+          setTestData(parsed.testData);
+          setUserAnswers(parsed.userAnswers || {});
+          setFlagged(parsed.flagged || {});
+          setTimeLeft(parsed.timeLeft || 1800);
+          setSpeed(parsed.speed || 1);
+          setIsTimerRunning(true);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to restore listening session", e);
+    }
+  }, []);
+
+  // Auto-save active listening session to localStorage
+  useEffect(() => {
+    if (testData && !gradedResult) {
+      try {
+        localStorage.setItem(
+          "ielts_listening_active_session",
+          JSON.stringify({
+            testData,
+            userAnswers,
+            flagged,
+            timeLeft,
+            speed,
+          })
+        );
+      } catch (e) {}
+    }
+  }, [testData, userAnswers, flagged, timeLeft, speed, gradedResult]);
 
   useEffect(() => {
     let timer;
@@ -39,6 +77,10 @@ export function ListeningPanel({ history, setHistory, supabase, userId, setVocab
   };
 
   async function handleGenerateTest() {
+    try {
+      localStorage.removeItem("ielts_listening_active_session");
+    } catch (e) {}
+
     setGenLoading(true);
     setGradedResult(null);
     setUserAnswers({});
@@ -46,6 +88,7 @@ export function ListeningPanel({ history, setHistory, supabase, userId, setVocab
     setTestData(null);
     setShowTranscript(false);
     setTimeLeft(1800);
+
 
     try {
       const res = await fetch("/api/ai/listening", {
@@ -158,6 +201,11 @@ export function ListeningPanel({ history, setHistory, supabase, userId, setVocab
           setHistory((prev) => [{ ...inserted, band }, ...prev]);
         }
       }
+      // Fire gamification
+      if (onActivityDone) onActivityDone("listening");
+      try {
+        localStorage.removeItem("ielts_listening_active_session");
+      } catch (e) {}
     } catch (e) {
       console.error(e);
     }
@@ -267,64 +315,95 @@ export function ListeningPanel({ history, setHistory, supabase, userId, setVocab
             </div>
           </div>
 
-          <h4 style={{ margin: "16px 0 10px", fontSize: "14px" }}>Câu hỏi bài nghe (Questions)</h4>
-          {testData.questions.map((q, idx) => (
-            <div key={q.id} id={`l_q_block_${q.id}`} style={{ marginBottom: "14px", padding: "12px", borderRadius: "8px", background: "var(--ink-2)", border: "1px solid var(--border-soft)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <p style={{ fontWeight: "600", fontSize: "13.5px", margin: 0 }}>
-                  <span style={{ color: "var(--amber)", marginRight: "6px" }}>Q{idx + 1}.</span> {q.question}
-                </p>
-                <button
-                  onClick={() => setFlagged((prev) => ({ ...prev, [q.id]: !prev[q.id] }))}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: flagged[q.id] ? "var(--amber)" : "var(--text-soft)" }}
-                >
-                  <Flag size={13} />
-                </button>
-              </div>
+          <h4 style={{ margin: "16px 0 10px", fontSize: "14px", color: "var(--amber)" }}>
+            Câu hỏi bài nghe — {testData.questions.length} câu
+          </h4>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px" }}>
-                {q.options.map((opt) => (
-                  <label 
-                    key={opt} 
-                    style={{ 
-                      display: "flex", 
-                      alignItems: "center", 
-                      gap: "8px", 
-                      fontSize: "13px", 
-                      cursor: "pointer",
-                      padding: "6px 10px",
-                      borderRadius: "6px",
-                      background: userAnswers[q.id] === opt ? "var(--ink-3)" : "transparent",
-                      border: userAnswers[q.id] === opt ? "1px solid var(--amber)" : "1px solid transparent"
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name={`l_q_${q.id}`}
-                      value={opt}
-                      checked={userAnswers[q.id] === opt}
-                      onChange={() => setUserAnswers((prev) => ({ ...prev, [q.id]: opt }))}
-                      disabled={!!gradedResult}
-                    />
-                    {opt}
-                  </label>
-                ))}
+          {/* Section-based rendering */}
+          {(testData.sections || []).map((section, si) => (
+            <div key={si} style={{ marginBottom: 24 }}>
+              <div className="ielts-section-instruction">
+                {section.instruction}
               </div>
-
-              {gradedResult && (
-                <div className="ai-feedback" style={{ marginTop: "8px" }}>
-                  {gradedResult.details[idx]?.isCorrect ? (
-                    <p style={{ color: "var(--jade-light)", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", margin: 0 }}>
-                      <CheckCircle2 size={14} /> Chính xác!
-                    </p>
-                  ) : (
-                    <p style={{ color: "var(--coral)", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", margin: 0 }}>
-                      <XCircle size={14} /> Sai. Đáp án đúng: {q.answer}
-                    </p>
-                  )}
-                  <p style={{ fontSize: "12px", marginTop: "4px", color: "var(--text-soft)" }}>{q.explanation}</p>
+              {section.context && (
+                <div style={{ padding: "8px 12px", background: "var(--ink-3)", borderRadius: 6, marginBottom: 10, fontSize: 12, color: "var(--text-soft)", fontStyle: "italic" }}>
+                  {section.context}
                 </div>
               )}
+              {(section.questions || []).map((q, idx) => {
+                const globalIdx = testData.questions.findIndex(x => x.id === q.id);
+                return (
+                  <div key={q.id} id={`l_q_block_${q.id}`} style={{ marginBottom: "14px", padding: "12px", borderRadius: "8px", background: "var(--ink-2)", border: "1px solid var(--border-soft)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <p style={{ fontWeight: "600", fontSize: "13.5px", margin: 0 }}>
+                        <span style={{ color: "var(--amber)", marginRight: "6px" }}>{q.id}.</span> {q.question}
+                      </p>
+                      <button
+                        onClick={() => setFlagged((prev) => ({ ...prev, [q.id]: !prev[q.id] }))}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: flagged[q.id] ? "var(--amber)" : "var(--text-soft)" }}
+                      >
+                        <Flag size={13} />
+                      </button>
+                    </div>
+
+                    {/* MCQ options */}
+                    {q.options && q.options.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px" }}>
+                        {q.options.map((opt) => (
+                          <label
+                            key={opt}
+                            style={{
+                              display: "flex", alignItems: "center", gap: "8px",
+                              fontSize: "13px", cursor: "pointer",
+                              padding: "6px 10px", borderRadius: "6px",
+                              background: userAnswers[q.id] === opt ? "var(--ink-3)" : "transparent",
+                              border: userAnswers[q.id] === opt ? "1px solid var(--amber)" : "1px solid transparent"
+                            }}
+                          >
+                            <input
+                              type="radio"
+                              name={`l_q_${q.id}`}
+                              value={opt}
+                              checked={userAnswers[q.id] === opt}
+                              onChange={() => setUserAnswers((prev) => ({ ...prev, [q.id]: opt }))}
+                              disabled={!!gradedResult}
+                            />
+                            {opt}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Form completion (short answer) */}
+                    {(!q.options || q.options.length === 0) && (
+                      <input
+                        type="text"
+                        className="input-field"
+                        style={{ marginTop: 8, fontSize: 13 }}
+                        placeholder="Điền câu trả lời (tối đa 2 từ/số)..."
+                        value={userAnswers[q.id] || ""}
+                        onChange={(e) => setUserAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                        disabled={!!gradedResult}
+                      />
+                    )}
+
+                    {gradedResult && (
+                      <div className="ai-feedback" style={{ marginTop: "8px" }}>
+                        {gradedResult.details[globalIdx]?.isCorrect ? (
+                          <p style={{ color: "var(--jade-light)", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", margin: 0 }}>
+                            <CheckCircle2 size={14} /> Chính xác!
+                          </p>
+                        ) : (
+                          <p style={{ color: "var(--coral)", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", margin: 0 }}>
+                            <XCircle size={14} /> Sai. Đáp án: <strong>{q.answer}</strong>
+                          </p>
+                        )}
+                        <p style={{ fontSize: "12px", marginTop: "4px", color: "var(--text-soft)" }}>{q.explanation}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))}
 

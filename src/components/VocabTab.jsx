@@ -431,7 +431,7 @@ function DayGroupHeader({ dateStr, count, dueCount }) {
 }
 
 /* ─── Vocab Tab Main Component ─── */
-export function VocabTab({ vocabList, setVocabList, supabase, userId }) {
+export function VocabTab({ vocabList, setVocabList, supabase, userId, onActivityDone }) {
   const [word, setWord] = useState("");
   const [filter, setFilter] = useState("all");
   const [groupByDay, setGroupByDay] = useState(false);
@@ -518,6 +518,8 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId }) {
 
         await supabase.from("vocabulary").update(updates).eq("id", tempId);
         setVocabList(prev => prev.map(v => v.id === tempId ? { ...v, ...updates } : v));
+        // Fire gamification (+5 XP per word)
+        if (onActivityDone) onActivityDone("vocab");
       }
     } catch (e) {
       console.error("AI enrich failed", e);

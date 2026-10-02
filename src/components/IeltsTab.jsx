@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sparkles, Mic, Square } from "lucide-react";
 import { Spinner } from "./ui/Spinner";
 import { EmptyState } from "./ui/EmptyState";
@@ -10,7 +10,7 @@ import { AIExaminer } from "./AIExaminer";
 import { TASK_TYPES, SPEAKING_PARTS, fmtDate } from "@/lib/utils";
 
 /* ─── Writing Panel ─── */
-function WritingPanel({ history, setHistory, supabase, userId }) {
+function WritingPanel({ history, setHistory, supabase, userId, onActivityDone }) {
   const [taskType, setTaskType] = useState(TASK_TYPES[1]);
   const [prompt, setPrompt] = useState("");
   const [essay, setEssay] = useState("");
@@ -20,8 +20,35 @@ function WritingPanel({ history, setHistory, supabase, userId }) {
   const [result, setResult] = useState(null);
   const [annotations, setAnnotations] = useState(null);
 
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ielts_writing_draft");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.prompt) setPrompt(parsed.prompt);
+        if (parsed?.essay) setEssay(parsed.essay);
+        if (parsed?.taskType) setTaskType(parsed.taskType);
+      }
+    } catch (e) {}
+  }, []);
+
+  // Auto-save draft
+  useEffect(() => {
+    if (prompt || essay) {
+      try {
+        localStorage.setItem("ielts_writing_draft", JSON.stringify({ prompt, essay, taskType }));
+      } catch (e) {}
+    }
+  }, [prompt, essay, taskType]);
+
   async function handleGeneratePrompt() {
+    try {
+      localStorage.removeItem("ielts_writing_draft");
+    } catch (e) {}
     setGenLoading(true);
+    setResult(null);
+    setAnnotations(null);
     try {
       const res = await fetch("/api/ai/writing", {
         method: "POST",
@@ -35,6 +62,7 @@ function WritingPanel({ history, setHistory, supabase, userId }) {
     }
     setGenLoading(false);
   }
+
 
   async function handleGrade() {
     if (!essay.trim() || !prompt.trim()) return;
@@ -78,6 +106,7 @@ function WritingPanel({ history, setHistory, supabase, userId }) {
         } else {
           setHistory((prev) => [...prev, inserted]);
         }
+        if (onActivityDone) onActivityDone("writing");
       } else {
         alert("Không chấm được bài, vui lòng thử lại.");
       }
@@ -173,7 +202,7 @@ function WritingPanel({ history, setHistory, supabase, userId }) {
         <div className="card" style={{ borderColor: "var(--amber)" }}>
           <h3 className="section-title" style={{ color: "var(--amber)" }}>🔍 Inline Annotations & Upgrades</h3>
           {annotations.overall_tip && (
-            <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(214,169,75,0.1)", borderLeft: "3px solid var(--amber)", fontSize: 13 }}>
+            <div style={{ marginBottom: 12, padding: "8px 12px", background: "rgba(201, 163, 90,0.1)", borderLeft: "3px solid var(--amber)", fontSize: 13 }}>
               💡 {annotations.overall_tip}
             </div>
           )}
@@ -267,7 +296,7 @@ function WritingPanel({ history, setHistory, supabase, userId }) {
 }
 
 /* ─── Speaking Panel ─── */
-function SpeakingPanel({ history, setHistory, supabase, userId }) {
+function SpeakingPanel({ history, setHistory, supabase, userId, onActivityDone }) {
   const [part, setPart] = useState(SPEAKING_PARTS[0]);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -332,6 +361,7 @@ function SpeakingPanel({ history, setHistory, supabase, userId }) {
         } else {
           setHistory((prev) => [...prev, inserted]);
         }
+        if (onActivityDone) onActivityDone("speaking");
       } else {
         alert("Không chấm được, vui lòng thử lại.");
       }
@@ -486,6 +516,7 @@ export function IeltsTab({
   setExaminerHistory,
   supabase,
   userId,
+  onActivityDone,
 }) {
   const [sub, setSub] = useState("writing");
   return (
@@ -516,6 +547,7 @@ export function IeltsTab({
           setHistory={setWritingHistory}
           supabase={supabase}
           userId={userId}
+          onActivityDone={onActivityDone}
         />
       )}
       {sub === "speaking" && (
@@ -524,6 +556,7 @@ export function IeltsTab({
           setHistory={setSpeakingHistory}
           supabase={supabase}
           userId={userId}
+          onActivityDone={onActivityDone}
         />
       )}
       {sub === "examiner" && (

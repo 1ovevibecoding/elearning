@@ -10,6 +10,8 @@ import {
   PenLine,
   BookOpenCheck,
   Headphones,
+  Compass,
+  ArrowRight,
 } from "lucide-react";
 import {
   LineChart,
@@ -60,7 +62,68 @@ export function Dashboard({
 
   return (
     <div className="panel">
+      {/* ─── Diagnostic Banner ─── */}
+      <div
+        className="card"
+        style={{
+          background: "linear-gradient(135deg, rgba(30, 48, 44, 0.95) 0%, rgba(18, 28, 30, 0.95) 100%)",
+          border: "1px solid rgba(218, 119, 86, 0.4)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 16,
+          padding: "16px 20px",
+          marginBottom: 16,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: "50%",
+              background: "rgba(218, 119, 86, 0.2)",
+              border: "1px solid var(--jade)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--jade-light)",
+            }}
+          >
+            <Compass size={22} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <strong style={{ fontSize: 15, color: "var(--text-bright)" }}>
+                Test Đầu Vào Reading & Listening
+              </strong>
+              <span className="chip chip-active" style={{ fontSize: 10, padding: "1px 6px", background: "var(--jade)" }}>
+                Khuyên Dùng
+              </span>
+            </div>
+            <p style={{ fontSize: 12.5, color: "var(--text-soft)", margin: "2px 0 0" }}>
+              Làm bài kiểm tra 18 câu chuẩn Cambridge để AI chẩn đoán Band điểm và lập lộ trình học cá nhân hóa.
+            </p>
+          </div>
+        </div>
+
+        <button
+          className="btn-primary"
+          onClick={() => setTab("diagnostic")}
+          style={{
+            padding: "8px 16px",
+            fontSize: 13,
+            fontWeight: 700,
+            boxShadow: "0 0 12px rgba(218, 119, 86,0.3)",
+          }}
+        >
+          Làm bài Test ngay <ArrowRight size={14} />
+        </button>
+      </div>
+
       <div className="stat-grid">
+
         <StatCard
           icon={BookOpen}
           label="Từ đã lưu"

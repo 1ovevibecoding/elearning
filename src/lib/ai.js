@@ -8,9 +8,36 @@ const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 /**
+ * Helper to safely parse JSON from AI outputs (handling markdown fences and whitespace)
+ */
+function parseJsonSafe(text) {
+  if (!text) return null;
+  let clean = text.trim();
+  if (clean.startsWith("```json")) {
+    clean = clean.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
+  } else if (clean.startsWith("```")) {
+    clean = clean.replace(/^```\s*/, "").replace(/```\s*$/, "").trim();
+  }
+  try {
+    return JSON.parse(clean);
+  } catch (e) {
+    const firstBrace = clean.indexOf("{");
+    const lastBrace = clean.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      try {
+        return JSON.parse(clean.slice(firstBrace, lastBrace + 1));
+      } catch (err2) {
+        // pass
+      }
+    }
+    throw e;
+  }
+}
+
+/**
  * Call Groq API (OpenAI-compatible)
  */
-async function callGroq(system, user) {
+async function callGroq(system, user, maxTokens = 3500) {
   const res = await fetch(GROQ_URL, {
     method: "POST",
     headers: {
@@ -24,7 +51,7 @@ async function callGroq(system, user) {
         { role: "user", content: user },
       ],
       temperature: 0.7,
-      max_tokens: 1200,
+      max_tokens: maxTokens,
       response_format: { type: "json_object" },
     }),
   });
@@ -35,13 +62,13 @@ async function callGroq(system, user) {
 
   const data = await res.json();
   const text = data.choices?.[0]?.message?.content || "";
-  return JSON.parse(text);
+  return parseJsonSafe(text);
 }
 
 /**
  * Call Google Gemini API (fallback)
  */
-async function callGemini(system, user) {
+async function callGemini(system, user, maxTokens = 3500) {
   const url = `${GEMINI_URL}?key=${process.env.GEMINI_API_KEY}`;
   const res = await fetch(url, {
     method: "POST",
@@ -52,7 +79,7 @@ async function callGemini(system, user) {
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0.7,
-        maxOutputTokens: 1200,
+        maxOutputTokens: maxTokens,
       },
     }),
   });
@@ -63,22 +90,24 @@ async function callGemini(system, user) {
 
   const data = await res.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-  return JSON.parse(text);
+  return parseJsonSafe(text);
 }
 
 /**
  * Main AI function — tries Groq, falls back to Gemini.
  * @param {string} system - System prompt
  * @param {string} user - User prompt
+ * @param {Object} [options] - Options (maxTokens, etc.)
  * @returns {Object|null} Parsed JSON response
  */
-export async function askAI(system, user) {
+export async function askAI(system, user, options = {}) {
+  const maxTokens = options.maxTokens || 3500;
   // Append JSON instruction to system prompt
   const systemWithJson = system + " Respond ONLY with valid JSON, no markdown or explanation.";
 
   try {
     if (process.env.GROQ_API_KEY) {
-      return await callGroq(systemWithJson, user);
+      return await callGroq(systemWithJson, user, maxTokens);
     }
   } catch (groqError) {
     console.warn("Groq failed, trying Gemini fallback:", groqError.message);
@@ -86,7 +115,7 @@ export async function askAI(system, user) {
 
   try {
     if (process.env.GEMINI_API_KEY) {
-      return await callGemini(systemWithJson, user);
+      return await callGemini(systemWithJson, user, maxTokens);
     }
   } catch (geminiError) {
     console.error("Both AI providers failed:", geminiError.message);
@@ -94,3 +123,4 @@ export async function askAI(system, user) {
 
   return null;
 }
+

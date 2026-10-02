@@ -44,7 +44,7 @@ function WordMapLegend() {
   );
 }
 
-export function ShadowingTab({ history, setHistory, supabase, userId }) {
+export function ShadowingTab({ history, setHistory, supabase, userId, onActivityDone }) {
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState(LEVEL_OPTIONS[1]);
   const [script, setScript] = useState("");
@@ -155,6 +155,8 @@ export function ShadowingTab({ history, setHistory, supabase, userId }) {
           },
           ...prev,
         ]);
+        // Fire gamification
+        if (onActivityDone) onActivityDone("shadowing");
       }
     } catch (e) {
       console.error(e);
