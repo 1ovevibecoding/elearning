@@ -8,6 +8,7 @@ export const metadata = {
 
 export default async function LandingPage() {
   const user = await currentUser();
+  const hasUser = !!user;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--ink)", color: "var(--paper)" }}>
@@ -17,7 +18,7 @@ export default async function LandingPage() {
           PREP <span style={{ color: "var(--jade)" }}>IELTS</span>
         </h1>
         <div>
-          {user ? (
+          {hasUser ? (
             <Link href="/dashboard" className="btn-primary" style={{ padding: "8px 16px", textDecoration: "none" }}>
               Vào học →
             </Link>
@@ -34,7 +35,7 @@ export default async function LandingPage() {
         </div>
       </header>
 
-      <LandingClient user={user} />
+      <LandingClient hasUser={hasUser} />
     </div>
   );
 }

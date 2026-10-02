@@ -9,7 +9,7 @@ const HeroScene = dynamic(() => import("@/components/three/HeroScene"), {
   loading: () => <div style={{ height: 350, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-soft)" }}>Đang tải hiệu ứng 3D...</div>,
 });
 
-export default function LandingClient({ user }) {
+export function LandingClient({ hasUser }) {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--ink)", color: "var(--paper)" }}>
       {/* Top Bar */}
@@ -18,7 +18,7 @@ export default function LandingClient({ user }) {
           PREP <span style={{ color: "var(--jade)" }}>IELTS</span>
         </h1>
         <div>
-          {user ? (
+          {hasUser ? (
             <Link href="/dashboard" className="btn-primary" style={{ padding: "8px 16px", textDecoration: "none" }}>
               Vào học <ArrowRight size={14} />
             </Link>
@@ -53,7 +53,7 @@ export default function LandingClient({ user }) {
         </div>
 
         <div style={{ display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap", marginTop: 20 }}>
-          {user ? (
+          {hasUser ? (
             <Link href="/dashboard" className="btn-primary" style={{ padding: "14px 28px", fontSize: 16, textDecoration: "none" }}>
               Tiếp tục học ngay <ArrowRight size={16} />
             </Link>

@@ -7,9 +7,8 @@ import * as THREE from "three";
 function ParticleField() {
   const pointsRef = useRef();
 
-  // Generate particle positions
   const [positions, colors] = useMemo(() => {
-    const count = 2000;
+    const count = 1000;
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
 
@@ -17,12 +16,11 @@ function ParticleField() {
     const amber = new THREE.Color("#C9A35A");
 
     for (let i = 0; i < count; i++) {
-      // Sphere distribution
       const u = Math.random();
       const v = Math.random();
       const theta = u * 2.0 * Math.PI;
       const phi = Math.acos(2.0 * v - 1.0);
-      const r = 3 + Math.random() * 2;
+      const r = 2.5 + Math.random() * 1.5;
 
       pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
@@ -38,9 +36,8 @@ function ParticleField() {
 
   useFrame((state) => {
     if (!pointsRef.current) return;
-    const time = state.clock.getElapsedTime() * 0.15;
-    pointsRef.current.rotation.y = time * 0.5;
-    pointsRef.current.rotation.x = Math.sin(time * 0.3) * 0.2;
+    const time = state.clock.getElapsedTime() * 0.1;
+    pointsRef.current.rotation.y = time;
   });
 
   return (
@@ -56,10 +53,10 @@ function ParticleField() {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.05}
+        size={0.06}
         vertexColors
         transparent
-        opacity={0.8}
+        opacity={0.9}
         sizeAttenuation
       />
     </points>
@@ -68,12 +65,12 @@ function ParticleField() {
 
 export default function HeroScene() {
   return (
-    <div style={{ width: "100%", height: "400px", position: "relative", pointerEvents: "none" }} aria-hidden="true">
+    <div style={{ width: "100%", height: "300px", position: "relative" }} aria-hidden="true">
       <Canvas
-        camera={{ position: [0, 0, 8], fov: 60 }}
+        camera={{ position: [0, 0, 6], fov: 60 }}
         dpr={[1, 1.5]}
         gl={{ powerPreference: "low-power", antialias: false }}
-        frameloop="demand"
+        frameloop="always"
       >
         <ParticleField />
       </Canvas>
