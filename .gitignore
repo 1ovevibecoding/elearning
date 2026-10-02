@@ -42,3 +42,5 @@ next-env.d.ts
 
 .vercel
 /.playwright-mcp/
+/set-vercel-env.ps1
+/set-vercel-env.ps1.local
