@@ -1,4 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
+import { checkRateLimit } from "@/lib/rateLimiter";
+import { validateAudioSize } from "@/lib/validation";
 
 const GROQ_WHISPER_URL =
   "https://api.groq.com/openai/v1/audio/transcriptions";
@@ -10,12 +12,19 @@ export async function POST(request) {
   }
 
   try {
+    const allowed = await checkRateLimit(userId);
+    if (!allowed) {
+      return Response.json({ error: "Rate limit exceeded" }, { status: 429 });
+    }
+
     const formData = await request.formData();
     const audioFile = formData.get("audio");
 
     if (!audioFile) {
       return Response.json({ error: "No audio file provided" }, { status: 400 });
     }
+
+    validateAudioSize(audioFile);
 
     // Build FormData for Groq Whisper
     const groqForm = new FormData();
@@ -53,6 +62,7 @@ export async function POST(request) {
     });
   } catch (e) {
     console.error("Transcribe error:", e);
+    if (e.message === "Audio file too large") return Response.json({ error: e.message }, { status: 413 });
     return Response.json({ error: "Internal error" }, { status: 500 });
   }
 }

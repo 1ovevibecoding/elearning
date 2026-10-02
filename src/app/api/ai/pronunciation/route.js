@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { askAI } from "@/lib/ai";
+import { askAI, handleAIError } from "@/lib/ai";
 
 /**
  * Pronunciation analysis API
@@ -62,7 +62,7 @@ Return a JSON object in this format:
 
     return Response.json(result);
   } catch (e) {
-    console.error("Pronunciation analysis error:", e);
-    return Response.json({ error: "Internal error" }, { status: 500 });
+    console.error("AI error:", e);
+    return handleAIError(e);
   }
 }

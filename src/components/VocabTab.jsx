@@ -431,7 +431,10 @@ function DayGroupHeader({ dateStr, count, dueCount }) {
 }
 
 /* ─── Vocab Tab Main Component ─── */
-export function VocabTab({ vocabList, setVocabList, supabase, userId, onActivityDone }) {
+import { useApp } from "@/context/AppContext";
+
+export function VocabTab({ vocabList, setVocabList }) {
+  const { supabase, userId, onActivityDone, showToast } = useApp();
   const [word, setWord] = useState("");
   const [filter, setFilter] = useState("all");
   const [groupByDay, setGroupByDay] = useState(false);
@@ -539,7 +542,7 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId, onActivity
         return next;
       });
     } catch (e) {
-      alert("Lỗi khi xóa từ.");
+      showToast("Lỗi khi xóa từ.", "error");
     }
   }
 
@@ -558,7 +561,7 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId, onActivity
     });
 
     if (toDeleteIds.length === 0) {
-      alert("Không có từ nào bị trùng lặp!");
+      showToast("Không có từ nào bị trùng lặp!");
       return;
     }
 
@@ -567,9 +570,9 @@ export function VocabTab({ vocabList, setVocabList, supabase, userId, onActivity
     try {
       await supabase.from("vocabulary").delete().in("id", toDeleteIds);
       setVocabList(prev => prev.filter(v => !toDeleteIds.includes(v.id)));
-      alert(`Đã dọn dẹp ${toDeleteIds.length} từ trùng lặp!`);
+      showToast(`Đã dọn dẹp ${toDeleteIds.length} từ trùng lặp!`, "success");
     } catch (e) {
-      alert("Lỗi khi dọn từ trùng.");
+      showToast("Lỗi khi dọn từ trùng.", "error");
     }
   }
 

@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { askAI } from "@/lib/ai";
+import { askAI, handleAIError } from "@/lib/ai";
 
 export async function POST(request) {
   const { userId } = await auth();
@@ -95,7 +95,7 @@ Return JSON in this EXACT format:
 
     return Response.json({ error: "Invalid action" }, { status: 400 });
   } catch (e) {
-    console.error("Reading AI error:", e);
-    return Response.json({ error: "Internal error" }, { status: 500 });
+    console.error("AI error:", e);
+    return handleAIError(e);
   }
 }

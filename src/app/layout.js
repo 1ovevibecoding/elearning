@@ -1,5 +1,5 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import { Inter, IBM_Plex_Mono } from "next/font/google";
+import { Inter, IBM_Plex_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -13,6 +13,13 @@ const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
   display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+  axes: ["opsz", "wght"],
 });
 
 export const metadata = {
@@ -42,13 +49,7 @@ export default function RootLayout({ children }) {
         },
       }}
     >
-      <html lang="vi" className={`${inter.variable} ${ibmPlexMono.variable}`}>
-        <head>
-          <link
-            href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap"
-            rel="stylesheet"
-          />
-        </head>
+      <html lang="vi" className={`${inter.variable} ${ibmPlexMono.variable} ${fraunces.variable}`}>
         <body>{children}</body>
       </html>
     </ClerkProvider>

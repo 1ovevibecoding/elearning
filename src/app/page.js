@@ -15,6 +15,8 @@ import { ReadingPanel } from "@/components/ReadingPanel";
 import { ListeningPanel } from "@/components/ListeningPanel";
 import { DiagnosticTest } from "@/components/DiagnosticTest";
 import { QuickSelectionVocab } from "@/components/QuickSelectionVocab";
+import { AppProvider } from "@/context/AppContext";
+import { Toast } from "@/components/ui/Toast";
 
 
 
@@ -26,6 +28,9 @@ export default function Home() {
 
   const [tab, setTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg) => setToast(msg);
 
   // App State
   const [vocabList, setVocabList] = useState([]);
@@ -41,18 +46,24 @@ export default function Home() {
   // Refresh activities & stats after any learning action
   async function onActivityDone(type) {
     if (!userId) return;
-    await recordActivity(supabase, userId, type);
-    // Refresh activities and user_stats from DB
-    const [actRes, statsRes] = await Promise.all([
-      supabase.from("daily_activities").select("*").eq("user_id", userId).order("activity_date", { ascending: false }),
-      supabase.from("user_stats").select("*").eq("user_id", userId).single(),
-    ]);
-    if (actRes.data) setActivities(actRes.data);
-    if (statsRes.data) setUserStats(statsRes.data);
+    try {
+      await recordActivity(supabase, userId, type);
+      // Refresh activities and user_stats from DB
+      const [actRes, statsRes] = await Promise.all([
+        supabase.from("daily_activities").select("*").eq("user_id", userId).order("activity_date", { ascending: false }),
+        supabase.from("user_stats").select("*").eq("user_id", userId).single(),
+      ]);
+      if (actRes.data) setActivities(actRes.data);
+      if (statsRes.data) setUserStats(statsRes.data);
+    } catch (e) {
+      console.error(e);
+      showToast("Không thể đồng bộ hoạt động với CSDL");
+    }
   }
 
   // Create Supabase client
   const { getToken } = useAuth();
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const supabase = useMemo(() => createClerkSupabaseClient(getToken), [getToken]);
 
   // Fetch all user data
@@ -68,6 +79,7 @@ export default function Home() {
 
         if (profileErr) {
           console.error("Profile upsert failed", profileErr);
+          showToast("Lỗi lưu thông tin profile");
         }
 
         // Fetch all user data in parallel
@@ -96,6 +108,7 @@ export default function Home() {
         setUserStats(statsRes.data || {});
       } catch (err) {
         console.error("Error fetching data:", err);
+        showToast("Lỗi tải dữ liệu từ CSDL");
       }
       setLoading(false);
     }
@@ -112,130 +125,139 @@ export default function Home() {
   }
 
   return (
-    <div className="app-shell">
-      {/* Global Right-Click & Text Selection Vocabulary Helper */}
-      <QuickSelectionVocab
-        supabase={supabase}
-        userId={userId}
-        vocabList={vocabList}
-        setVocabList={setVocabList}
-        onActivityDone={onActivityDone}
-      />
+    <AppProvider value={{ supabase, userId, onActivityDone, showToast }}>
+      <div className="app-shell">
+        <Toast message={toast} onClose={() => setToast(null)} />
+        {/* Global Right-Click & Text Selection Vocabulary Helper */}
+        <QuickSelectionVocab
+          supabase={supabase}
+          userId={userId}
+          vocabList={vocabList}
+          setVocabList={setVocabList}
+          onActivityDone={onActivityDone}
+        />
 
-      <Header />
-      <TabNav tab={tab} setTab={setTab} />
-      <main className="app-main">
+        <Header />
+        <TabNav tab={tab} setTab={setTab} />
+        <main className="app-main">
 
-        {loading ? (
-          <div className="loading-state">
-            Đang tải dữ liệu của bạn...
-          </div>
-        ) : (
-          <>
-            {/* ─── Dashboard & Gamification ─── */}
-            <div style={{ display: tab === "dashboard" ? "flex" : "none", flexDirection: "column", gap: 20 }}>
-              <LeagueProgress stats={userStats} />
-              <TargetBandPlanner 
-                stats={userStats} 
-                onSave={async (updates) => {
-                  await supabase.from("user_stats").upsert({ user_id: userId, ...updates });
-                  setUserStats((p) => ({ ...p, ...updates }));
-                }}
-              />
+          {loading ? (
+            <div className="loading-state">
+              Đang tải dữ liệu của bạn...
+            </div>
+          ) : (
+            <>
+              {/* ─── Dashboard & Gamification ─── */}
+              {tab === "dashboard" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  <LeagueProgress stats={userStats} />
+                  <TargetBandPlanner
+                    stats={userStats}
+                    onSave={async (updates) => {
+                      const { error } = await supabase.from("user_stats").upsert({ user_id: userId, ...updates });
+                      if (error) {
+                        showToast("Lỗi lưu mục tiêu band");
+                      } else {
+                        setUserStats((p) => ({ ...p, ...updates }));
+                      }
+                    }}
+                  />
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
-                <DailyMissions 
-                  todayActivity={activities.find((a) => a.activity_date === todayStr())} 
-                  stats={userStats}
-                  setTab={setTab} 
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
+                    <DailyMissions
+                      todayActivity={activities.find((a) => a.activity_date === todayStr())}
+                      stats={userStats}
+                      setTab={setTab}
+                    />
+                    <ActivityHeatmap
+                      activities={activities}
+                      currentStreak={userStats.current_streak || 0}
+                      longestStreak={userStats.longest_streak || 0}
+                    />
+                  </div>
+
+                  <Dashboard
+                    vocabList={vocabList}
+                    shadowingHistory={shadowingHistory}
+                    writingHistory={writingHistory}
+                    speakingHistory={speakingHistory}
+                    readingHistory={readingHistory}
+                    listeningHistory={listeningHistory}
+                    setTab={setTab}
+                  />
+                </div>
+              )}
+
+              {tab === "diagnostic" && (
+                <DiagnosticTest
+                  supabase={supabase}
+                  userId={userId}
+                  userStats={userStats}
+                  setUserStats={setUserStats}
+                  setTab={setTab}
+                  onActivityDone={onActivityDone}
                 />
-                <ActivityHeatmap 
-                  activities={activities} 
-                  currentStreak={userStats.current_streak || 0} 
-                  longestStreak={userStats.longest_streak || 0} 
+              )}
+
+              {tab === "vocab" && (
+                <VocabTab
+                  vocabList={vocabList}
+                  setVocabList={setVocabList}
+                  supabase={supabase}
+                  userId={userId}
+                  onActivityDone={onActivityDone}
                 />
-              </div>
+              )}
 
-              <Dashboard
-                vocabList={vocabList}
-                shadowingHistory={shadowingHistory}
-                writingHistory={writingHistory}
-                speakingHistory={speakingHistory}
-                readingHistory={readingHistory}
-                listeningHistory={listeningHistory}
-                setTab={setTab}
-              />
-            </div>
+              {tab === "shadowing" && (
+                <ShadowingTab
+                  history={shadowingHistory}
+                  setHistory={setShadowingHistory}
+                  supabase={supabase}
+                  userId={userId}
+                  onActivityDone={onActivityDone}
+                />
+              )}
 
-            <div style={{ display: tab === "diagnostic" ? "block" : "none" }}>
-              <DiagnosticTest
-                supabase={supabase}
-                userId={userId}
-                userStats={userStats}
-                setUserStats={setUserStats}
-                setTab={setTab}
-                onActivityDone={onActivityDone}
-              />
-            </div>
+              {tab === "ielts" && (
+                <IeltsTab
+                  writingHistory={writingHistory}
+                  setWritingHistory={setWritingHistory}
+                  speakingHistory={speakingHistory}
+                  setSpeakingHistory={setSpeakingHistory}
+                  examinerHistory={examinerHistory}
+                  setExaminerHistory={setExaminerHistory}
+                  supabase={supabase}
+                  userId={userId}
+                  onActivityDone={onActivityDone}
+                />
+              )}
 
-            <div style={{ display: tab === "vocab" ? "block" : "none" }}>
-              <VocabTab
-                vocabList={vocabList}
-                setVocabList={setVocabList}
-                supabase={supabase}
-                userId={userId}
-                onActivityDone={onActivityDone}
-              />
-            </div>
+              {tab === "reading" && (
+                <ReadingPanel
+                  history={readingHistory}
+                  setHistory={setReadingHistory}
+                  supabase={supabase}
+                  userId={userId}
+                  setVocabList={setVocabList}
+                  onActivityDone={onActivityDone}
+                />
+              )}
 
-            <div style={{ display: tab === "shadowing" ? "block" : "none" }}>
-              <ShadowingTab
-                history={shadowingHistory}
-                setHistory={setShadowingHistory}
-                supabase={supabase}
-                userId={userId}
-                onActivityDone={onActivityDone}
-              />
-            </div>
-
-            <div style={{ display: tab === "ielts" ? "block" : "none" }}>
-              <IeltsTab
-                writingHistory={writingHistory}
-                setWritingHistory={setWritingHistory}
-                speakingHistory={speakingHistory}
-                setSpeakingHistory={setSpeakingHistory}
-                examinerHistory={examinerHistory}
-                setExaminerHistory={setExaminerHistory}
-                supabase={supabase}
-                userId={userId}
-                onActivityDone={onActivityDone}
-              />
-            </div>
-
-            <div style={{ display: tab === "reading" ? "block" : "none" }}>
-              <ReadingPanel
-                history={readingHistory}
-                setHistory={setReadingHistory}
-                supabase={supabase}
-                userId={userId}
-                setVocabList={setVocabList}
-                onActivityDone={onActivityDone}
-              />
-            </div>
-
-            <div style={{ display: tab === "listening" ? "block" : "none" }}>
-              <ListeningPanel
-                history={listeningHistory}
-                setHistory={setListeningHistory}
-                supabase={supabase}
-                userId={userId}
-                setVocabList={setVocabList}
-                onActivityDone={onActivityDone}
-              />
-            </div>
-          </>
-        )}
-      </main>
-    </div>
+              {tab === "listening" && (
+                <ListeningPanel
+                  history={listeningHistory}
+                  setHistory={setListeningHistory}
+                  supabase={supabase}
+                  userId={userId}
+                  setVocabList={setVocabList}
+                  onActivityDone={onActivityDone}
+                />
+              )}
+            </>
+          )}
+        </main>
+      </div>
+    </AppProvider>
   );
 }

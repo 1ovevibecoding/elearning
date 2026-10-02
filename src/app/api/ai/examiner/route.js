@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { askAI } from "@/lib/ai";
+import { askAI, handleAIError } from "@/lib/ai";
 
 /**
  * AI Examiner — 2-way IELTS Speaking simulation
@@ -74,7 +74,7 @@ Return JSON:
 
     return Response.json({ error: "Invalid action" }, { status: 400 });
   } catch (e) {
-    console.error("Examiner error:", e);
-    return Response.json({ error: "Internal error" }, { status: 500 });
+    console.error("AI error:", e);
+    return handleAIError(e);
   }
 }

@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { askAI } from "@/lib/ai";
+import { askAI, handleAIError } from "@/lib/ai";
 
 export async function POST(request) {
   const { userId } = await auth();
@@ -47,7 +47,7 @@ Return JSON with this exact structure:
     if (!result) return Response.json({ error: "AI unavailable" }, { status: 503 });
     return Response.json(result);
   } catch (e) {
-    console.error("Writing annotate error:", e);
-    return Response.json({ error: "Internal error" }, { status: 500 });
+    console.error("AI error:", e);
+    return handleAIError(e);
   }
 }

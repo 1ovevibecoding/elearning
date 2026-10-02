@@ -1,3 +1,8 @@
+import { sanitizeScores } from "./validation";
+import { validateInput } from "./validation";
+import { checkRateLimit } from "./rateLimiter";
+import { auth } from "@clerk/nextjs/server";
+
 /**
  * Server-side AI caller — calls Groq first, falls back to Gemini.
  * Always requests JSON responses.
@@ -100,27 +105,50 @@ async function callGemini(system, user, maxTokens = 3500) {
  * @param {Object} [options] - Options (maxTokens, etc.)
  * @returns {Object|null} Parsed JSON response
  */
+export function handleAIError(e) {
+  if (e.status) return Response.json({ error: e.message }, { status: e.status });
+  return Response.json({ error: "Internal error" }, { status: 500 });
+}
+
 export async function askAI(system, user, options = {}) {
   const maxTokens = options.maxTokens || 3500;
+
+  const authData = await auth();
+  const userId = options.userId || authData?.userId;
+
+  if (userId) {
+    const allowed = await checkRateLimit(userId);
+    if (!allowed) {
+      const err = new Error("Rate limit exceeded (max 30 requests/hour)");
+      err.status = 429;
+      throw err;
+    }
+  }
+
+  validateInput(user, 5000);
+
   // Append JSON instruction to system prompt
   const systemWithJson = system + " Respond ONLY with valid JSON, no markdown or explanation.";
 
+  let res = null;
   try {
     if (process.env.GROQ_API_KEY) {
-      return await callGroq(systemWithJson, user, maxTokens);
+      res = await callGroq(systemWithJson, user, maxTokens);
     }
   } catch (groqError) {
     console.warn("Groq failed, trying Gemini fallback:", groqError.message);
   }
 
-  try {
-    if (process.env.GEMINI_API_KEY) {
-      return await callGemini(systemWithJson, user, maxTokens);
+  if (!res) {
+    try {
+      if (process.env.GEMINI_API_KEY) {
+        res = await callGemini(systemWithJson, user, maxTokens);
+      }
+    } catch (geminiError) {
+      console.error("Both AI providers failed:", geminiError.message);
     }
-  } catch (geminiError) {
-    console.error("Both AI providers failed:", geminiError.message);
   }
 
-  return null;
+  return sanitizeScores(res);
 }
 
